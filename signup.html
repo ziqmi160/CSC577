@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Do-It Sign Up</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
+      background-size: 800% 800%;
+      color: #e6c9f0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: gradientMove 20s ease infinite;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .signup-container {
+      text-align: center;
+      padding: 40px 30px;
+      background-color: rgba(255, 255, 255, 0.03);
+      border-radius: 20px;
+      box-shadow: 0 0 20px #d2aaff, 0 0 40px #bb95ce, 0 0 60px #cda8d8;
+      max-width: 400px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      margin-bottom: 10px;
+      color: #f7e9ff;
+    }
+
+    h1 strong {
+      color: #d2aaff;
+    }
+
+    p {
+      font-size: 1.1rem;
+      color: #f3e7f7;
+      margin-bottom: 30px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      padding: 14px 18px;
+      border-radius: 30px;
+      border: none;
+      font-size: 1rem;
+      color: #2f004f;
+      background: #f7e9ff;
+      box-shadow: 0 4px 8px rgba(230, 201, 240, 0.4);
+      outline: none;
+    }
+
+    input::placeholder {
+      color: #7a5d99;
+    }
+
+    .signup-button {
+      background: #cda8d8;
+      color: #2f004f;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 40px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(205, 168, 216, 0.5);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .signup-button:hover {
+      background-color: #bb95ce;
+      transform: translateY(-3px);
+    }
+
+    @media (max-width: 500px) {
+      .signup-container {
+        padding: 30px 20px;
+      }
+
+      h1 {
+        font-size: 2.2rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="signup-container">
+    <h1>Join <strong>DO-IT</strong></h1>
+    <p>Create your free account and start planning smarter today.</p>
+    <form action="#" method="post">
+      <input type="text" name="username" placeholder="Username" required />
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <input type="password" name="confirmPassword" placeholder="Confirm Password" required />
+      <button type="submit" class="signup-button">Sign Up</button>
+    </form>
+    <div style="margin-top: 18px; text-align: center;">
+      <span>Already have an account? <a href="login.html" style="color: #d2aaff; text-decoration: underline;">Log in</a></span>
+    </div>
+  </div>
+  <script>
+  document.querySelector('form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const username = this.elements['username'].value;
+    const email = this.elements['email'].value;
+    const password = this.elements['password'].value;
+    const confirmPassword = this.elements['confirmPassword'].value;
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (err) {
+        data = { message: 'Unexpected server response' };
+      }
+      if (res.ok) {
+        alert('Signup successful! Redirecting to login...');
+        window.location.href = 'login.html';
+      } else {
+        alert(data.message || 'Signup failed');
+      }
+    } catch (err) {
+      alert('Network or server error. Please try again.');
+    }
+  });
+  </script>
+</body>
+</html>

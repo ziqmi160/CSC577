@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scheduled Tasks</title>
+
+  <!-- Optional: Bootstrap & Ionicons CDN (needed for styling) -->
+     <!-- Stylesheets -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
+      background-size: 800% 800%;
+      color: #e6c9f0;
+      height: 100vh;
+      overflow-y: auto;
+      animation: gradientMove 20s ease infinite;
+      padding: 20px;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .scheduled-container {
+      background-color: rgba(255, 255, 255, 0.03);
+      padding: 40px 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #d2aaff, 0 0 40px #bb95ce, 0 0 60px #cda8d8;
+      max-width: 1000px;
+      width: 100%;
+      height: 500px;
+      margin: auto;
+    }
+
+    h1 {
+      color: #f7e9ff;
+      font-size: 2.4rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .list-group-item {
+      background: #f7e9ff;
+      color: #2f004f;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      font-size: 1rem;
+      box-shadow: 0 4px 8px rgba(230, 201, 240, 0.4);
+      padding: 12px;
+    }
+
+    .clear_btn {
+      margin-top: 20px;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #fff;
+      min-width: 160px;
+      z-index: 1;
+      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    }
+
+    .dropdown-content a {
+      color: #2f004f;
+      padding: 12px 16px;
+      display: block;
+      text-decoration: none;
+    }
+
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    #noTasksMessage {
+      color: #bbb;
+      text-align: center;
+      margin-top: 30px;
+      font-size: 1.2rem;
+      font-style: italic;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+      <!-- Github Icon-->
+  <div class="github-icon">
+    <img src="images/main-icon.png" alt="Do-it icon">
+  </div>
+
+  
+
+<div class="scheduled-container">
+  <h1>Scheduled Tasks</h1>
+
+  <div class="text-center">
+
+    <!-- Search Bar -->
+    <div class="search-container mb-3">
+      <input type="text" id="searchBar" placeholder="Search tasks..."
+             class="form-control w-75 mx-auto mt-3">
+    </div>
+
+    <!-- Task List -->
+    <form id="newTaskForm">
+      <ul class="list-group" id="taskList"></ul>
+    </form>
+
+    <!-- No Tasks Message -->
+    <div id="noTasksMessage">No tasks scheduled.</div>
+
+    <!-- Clear All -->
+    <button id="clearAllTasks" class="btn btn-outline-danger clear_btn" onclick="clearAllTasks()">
+      <ion-icon name="trash-outline" style="font-size: 20px; margin-right: 6px"></ion-icon>
+      Clear All Tasks
+    </button>
+  </div>
+</div>
+
+<script>
+const API_BASE_URL = 'http://localhost:5000';
+const taskList = document.getElementById('taskList');
+const noTasksMessage = document.getElementById('noTasksMessage');
+
+// Fetch and render all active (non-archived) tasks
+async function fetchAndRenderActiveTasks() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+    const tasks = await response.json();
+    const activeTasks = tasks.filter(task => !task.completed);
+    taskList.innerHTML = '';
+    if (activeTasks.length === 0) {
+      noTasksMessage.style.display = 'block';
+    } else {
+      noTasksMessage.style.display = 'none';
+      activeTasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.style.background = '#fff';
+        li.style.borderRadius = '18px';
+        li.style.boxShadow = '0 2px 12px 0 #d2aaff33';
+        li.style.marginBottom = '24px';
+        li.style.padding = '24px 28px 18px 18px';
+        li.style.border = 'none';
+
+        // Priority badge color
+        let priorityColor = '#28a745';
+        if (task.priority === 'High') priorityColor = '#e74c3c';
+        else if (task.priority === 'Medium') priorityColor = '#ffc107';
+
+        li.innerHTML = `
+          <div style="display: flex; align-items: center; margin-bottom: 8px;">
+            <h5 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #2d174d;">${task.title}</h5>
+            <span style="margin-left: 16px; background: ${priorityColor}; color: #fff; border-radius: 12px; padding: 4px 14px; font-size: 0.95em; font-weight: 600;">
+              ${task.priority || '-'} Priority
+            </span>
+            ${task.dueDate ? `<span style="margin-left: 12px; background: #e0e0e0; color: #444; border-radius: 12px; padding: 4px 12px; font-size: 0.95em;">Due: ${task.dueDate}</span>` : ''}
+          </div>
+          ${task.description ? `<div style="margin-bottom: 8px; color: #444;"><b>Description:</b> ${task.description}</div>` : ''}
+          ${task.label && Array.isArray(task.label) && task.label.length > 0 ? `
+            <div style="margin-bottom: 8px;">
+              <b>Tags:</b> ${task.label.map(l => `<span style="background: #e3f2fd; color: #1976d2; border-radius: 12px; font-size: 0.92em; padding: 2px 12px; margin-right: 6px; margin-bottom: 4px; display: inline-block;">${l}</span>`).join(' ')}
+            </div>
+          ` : ''}
+          ${task.attachment && Array.isArray(task.attachment) && task.attachment.length > 0 ? `
+            <div style="margin-bottom: 8px;">
+              <b>Attachments:</b> ${task.attachment.map(url => `<a href='${url.startsWith('/uploads/') ? API_BASE_URL + url : url}' target='_blank' style="background: #f8f9fa; color: #6c63ff; border-radius: 12px; font-size: 0.92em; padding: 2px 12px; margin-right: 6px; margin-bottom: 4px; display: inline-block; text-decoration: none; border: 1px solid #e0e0e0;">📎 ${url.split('/').pop()}</a>`).join(' ')}
+            </div>
+          ` : ''}
+        `;
+        taskList.appendChild(li);
+      });
+    }
+  } catch (err) {
+    taskList.innerHTML = '<div>Failed to load tasks.</div>';
+    noTasksMessage.style.display = 'none';
+  }
+}
+
+async function clearAllTasks() {
+  try {
+    const token = localStorage.getItem('token');
+    await fetch(`${API_BASE_URL}/tasks`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+    fetchAndRenderActiveTasks();
+  } catch (err) {
+    taskList.innerHTML = '<div>Failed to clear tasks.</div>';
+    noTasksMessage.style.display = 'none';
+  }
+}
+
+fetchAndRenderActiveTasks();
+
+// Sidebar toggle
+function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.style.left = sidebar.style.left === "0px" ? "-260px" : "0px";
+}
+</script>
+
+<!-- loading all external/internal scripts -->
+  <script src="scroll.js"></script>
+  <script src="index.js"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+  <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js">
+  </script>
+  <script src="https://unpkg.com/typed.js@2.0.16/dist/typed.umd.js"></script>
+  <script>
+    var strings = ['Welcome to Do-it! 📝', 'Lets get to work.'];
+
+    function startTypedAnimation() {
+      var typed = new Typed('#element', {
+        strings: strings,
+        typeSpeed: 50,
+        onComplete: function () {
+          typed.reset();
+          strings.push(strings.shift());
+        },
+      });
+    }
+
+    startTypedAnimation(); 
+  </script>
+   <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var taskList = document.getElementById('taskList');
+    var taskActions = document.getElementById('taskActions');
+    init();
+    
+    // Function to check and toggle the display of taskActions
+    function checkTasksAndToggle() {
+      if (taskList && taskList.children.length > 0) {
+        // At least one task is present, show the container
+        taskActions.style.display = 'block';
+      } else {
+        // No tasks, hide the container
+        taskActions.style.display = 'none';
+      }
+    }
+
+    // Check tasks initially
+    checkTasksAndToggle();
+
+    // Use MutationObserver to detect changes in the DOM
+    var observer = new MutationObserver(function (mutations) {
+      // Check tasks whenever the content of taskList changes
+      checkTasksAndToggle();
+    });
+
+    // Configure the observer to watch for changes in the child nodes of taskList
+    var observerConfig = { childList: true };
+
+    // Start observing
+    observer.observe(taskList, observerConfig);
+  });
+</script>
+
+<!-- Sidebar Navigation -->
+<div id="sidebar"
+    style="
+        position: fixed;
+        top: 0;
+        left: -260px;
+        width: 260px;
+        height: 100%;
+        background-color: #111;
+        box-shadow: 0 0 20px #d2aaff, 0 0 20px #bb95ce, 0 0 40px #cda8d8;
+        padding-top: 60px;
+        transition: left 0.3s ease;
+        z-index: 1050;
+        color: #7b34d2;
+        font-family: Arial, sans-serif;
+    ">
+    <a href="index3.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Home</a>
+    <a href="account.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Account</a>
+    <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Archived</a>
+    <a href="priority.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Priority</a>
+    <a href="scheduled.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Scheduled</a>
+    <a href="label.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Label</a>
+    <a href="#" id="logoutBtn" style="display: block; padding: 16px; color: #e74c3c; text-decoration: none; font-weight: bold;">Logout</a>
+    <div style="margin: 40px 20px;"></div>
+</div>
+<!-- Hamburger icon for Sidebar -->
+<div id="hamburger" onclick="toggleSidebar()"
+    style="position: fixed; top: 20px; left: 20px; z-index: 1100; cursor: pointer;">
+    <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+    <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+    <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+</div>
+
+<script>
+// Login check
+if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+}
+// Logout logic
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        window.location.href = 'login.html';
+    });
+}
+</script>
+
+</body>
+</html>

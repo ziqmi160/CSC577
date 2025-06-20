@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Priority Tasks</title>
+    <!-- Reuse styles and scripts from your original -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(270deg, #2d174d, #3a2c5e 60%, #2d174d);
+      background-size: 800% 800%;
+      color: #2d174d;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      animation: gradientMove 20s ease infinite;
+    }
+
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .container-box {
+      max-width: 900px;
+      width: 100%;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.10);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #d2aaff33, 0 0 40px #bb95ce22, 0 0 60px #cda8d822;
+    }
+
+    .priority-task-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 12px 0 #0001;
+      border: none;
+      margin-bottom: 24px;
+      padding: 24px 28px 18px 18px;
+      position: relative;
+      min-width: 250px;
+      min-height: 80px;
+      transition: box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .priority-task-card.priority-high { border-left: 8px solid #e74c3c; }
+    .priority-task-card.priority-medium { border-left: 8px solid #ffc107; }
+    .priority-task-card.priority-low { border-left: 8px solid #28a745; }
+
+    .priority-task-card h5 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #2d174d;
+    }
+
+    .priority-task-card .badge {
+      font-size: 0.95em;
+      margin-right: 0.5em;
+      margin-bottom: 0.2em;
+    }
+
+    .priority-task-card .badge-light {
+      background: #f3f3f3;
+      color: #444;
+      border: 1px solid #eee;
+    }
+
+    .priority-task-card .badge-secondary {
+      background: #e0e0e0;
+      color: #444;
+    }
+
+    .priority-task-card .tag-chip {
+      background: #e3f2fd;
+      color: #1976d2;
+      border-radius: 12px;
+      font-size: 0.92em;
+      padding: 2px 12px;
+      margin-right: 6px;
+      margin-bottom: 4px;
+      display: inline-block;
+    }
+
+    .priority-task-card .file-chip {
+      background: #f8f9fa;
+      color: #6c63ff;
+      border-radius: 12px;
+      font-size: 0.92em;
+      padding: 2px 12px;
+      margin-right: 6px;
+      margin-bottom: 4px;
+      display: inline-block;
+      text-decoration: none;
+      border: 1px solid #e0e0e0;
+      transition: background 0.2s;
+    }
+
+    .priority-task-card .file-chip:hover {
+      background: #e0e7ff;
+      color: #3a2c5e;
+      text-decoration: underline;
+    }
+
+    .priority-task-card p {
+      margin-bottom: 0;
+      color: #444;
+      font-size: 1em;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 32px;
+      color: #e6c9f0;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Hamburger icon for Sidebar -->
+  <div id="hamburger" onclick="toggleSidebar()"
+      style="position: fixed; top: 20px; left: 20px; z-index: 1100; cursor: pointer;">
+      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+  </div>
+
+  <!-- Sidebar Navigation -->
+  <div id="sidebar"
+      style="
+          position: fixed;
+          top: 0;
+          left: -260px;
+          width: 260px;
+          height: 100%;
+          background-color: #111;
+          box-shadow: 0 0 20px #d2aaff, 0 0 20px #bb95ce, 0 0 40px #cda8d8;
+          padding-top: 60px;
+          transition: left 0.3s ease;
+          z-index: 1050;
+          color: #7b34d2;
+          font-family: Arial, sans-serif;
+      ">
+      <a href="account.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Account</a>
+      <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Archived</a>
+      <a href="priority.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Priority</a>
+      <a href="scheduled.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Scheduled</a>
+      <a href="label.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Label</a>
+      <a href="#" id="logoutBtn" style="display: block; padding: 16px; color: #e74c3c; text-decoration: none; font-weight: bold;">Logout</a>
+      <div style="margin: 40px 20px;">
+          <label class="switch">
+              <span class="sun">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                      <g fill="#ffd43b">
+                          <circle r="5" cy="12" cx="12"></circle>
+                          <path d="m21 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm-17 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm13.66-5.66a1 1 0 0 1 -.66-.29 1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.71.71a1 1 0 0 1 -.75.29zm-12.02 12.02a1 1 0 0 1 -.71-.29 1 1 0 0 1 0-1.41l.71-.66a1 1 0 0 1 1.41 1.41l-.71.71a1 1 0 0 1 -.7.24zm6.36-14.36a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm0 17a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm-5.66-14.66a1 1 0 0 1 -.7-.29l-.71-.71a1 1 0 0 1 1.41-1.41l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.29zm12.02 12.02a1 1 0 0 1 -.7-.29l-.66-.71a1 1 0 0 1 1.36-1.36l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.24z">
+                      </path>
+                  </svg>
+              </span>
+              <span class="moon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24">
+                      <path
+                          d="m223.5 32c-123.5 0-223.5 100.3-223.5 224s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6-96.9 0-175.5-78.8-175.5-176 0-65.8 36-123.1 89.3-153.3 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z">
+                      </path>
+                  </svg>
+              </span>
+              <input type="checkbox" id="modeToggle" class="mode-toggle input" />
+              <span class="slider"></span>
+          </label>
+      </div>
+  </div>
+
+  <!-- Github Icon-->
+  <div class="github-icon">
+    <a href="index2.html"><img src="images/main-icon.png" alt="Do-it icon"></a>
+  </div>
+  <div class="container-box">
+    <h1>Priority Tasks</h1>
+    <ul class="list-group" id="priorityList"></ul>
+  </div>
+
+  <script>
+    const priorityList = document.getElementById('priorityList');
+    const API_BASE_URL = 'http://localhost:5000'; // Change if your backend uses a different port
+
+    // Helper to sort by priority and due date
+    function sortTasks(tasks) {
+      const priorityOrder = { High: 1, Medium: 2, Low: 3 };
+      return tasks.sort((a, b) => {
+        const pA = priorityOrder[a.priority] || 4;
+        const pB = priorityOrder[b.priority] || 4;
+        if (pA !== pB) return pA - pB;
+        // If same priority, sort by due date (earliest first)
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate) - new Date(b.dueDate);
+        }
+        return 0;
+      });
+    }
+
+    async function fetchAndRenderPriority() {
+      priorityList.innerHTML = '';
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/tasks`, {
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        });
+        const tasks = await response.json();
+        const sorted = sortTasks(tasks);
+        if (sorted.length === 0) {
+          priorityList.innerHTML = '<li class="list-group-item">No tasks found.</li>';
+          return;
+        }
+        sorted.forEach(task => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item priority-task-card ' + (task.priority === 'High' ? 'priority-high' :
+                                               task.priority === 'Medium' ? 'priority-medium' :
+                                               'priority-low');
+          // Title
+          const titleElem = document.createElement('h5');
+          titleElem.textContent = task.title;
+          li.appendChild(titleElem);
+          // Priority and due date
+          const metaRow = document.createElement('div');
+          metaRow.className = 'mb-2 d-flex flex-wrap align-items-center';
+          metaRow.innerHTML = `<span class="badge badge-light">${task.priority} priority</span>` +
+            (task.dueDate ? `<span class="badge badge-secondary">Due: ${task.dueDate}</span>` : '');
+          li.appendChild(metaRow);
+          // Tags
+          if (task.label && Array.isArray(task.label) && task.label.length > 0) {
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'mb-2 d-flex flex-wrap align-items-center';
+            task.label.forEach(l => {
+              const chip = document.createElement('span');
+              chip.className = 'tag-chip';
+              chip.textContent = l;
+              labelDiv.appendChild(chip);
+            });
+            li.appendChild(labelDiv);
+          }
+          // Attachments
+          if (task.attachment && Array.isArray(task.attachment) && task.attachment.length > 0) {
+            const attachDiv = document.createElement('div');
+            attachDiv.className = 'mb-2 d-flex flex-wrap align-items-center';
+            task.attachment.forEach(url => {
+              const link = document.createElement('a');
+              link.href = url.startsWith('/uploads/') ? API_BASE_URL + url : url;
+              link.textContent = '📎 ' + url.split('/').pop();
+              link.target = '_blank';
+              link.className = 'file-chip';
+              attachDiv.appendChild(link);
+            });
+            li.appendChild(attachDiv);
+          }
+          // Description
+          if (task.description && task.description.trim() !== '') {
+            const descP = document.createElement('p');
+            descP.textContent = task.description;
+            li.appendChild(descP);
+          }
+          priorityList.appendChild(li);
+        });
+      } catch (err) {
+        priorityList.innerHTML = '<li class="list-group-item">Failed to load tasks.</li>';
+      }
+    }
+
+    fetchAndRenderPriority();
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.style.left = sidebar.style.left === "0px" ? "-260px" : "0px";
+    }
+
+    // Login check
+    if (!localStorage.getItem('token')) {
+        window.location.href = 'login.html';
+    }
+    // Logout logic
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
+    }
+  </script>
+</body>
+</html>

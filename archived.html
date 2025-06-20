@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Archived Tasks</title>
+  <!-- Reuse styles and scripts from your original -->
+   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
+      background-size: 800% 800%;
+      animation: gradientMove 20s ease infinite;
+      color: #e6c9f0;
+      padding: 20px;
+      height: 100vh;
+    }
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .container-box {
+      max-width: 1000px;
+      height: 500px;
+      width: 100%;
+      margin: auto;
+      
+      background: rgba(255, 255, 255, 0.03);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #d2aaff, 0 0 40px #bb95ce, 0 0 60px #cda8d8;
+    }
+    h1 {
+      color: #f7e9ff;
+      text-align: center;
+    }
+    .list-group-item {
+      background: #e9d4f7;
+      color: #2f004f;
+      margin-bottom: 10px;
+      border-radius: 10px;
+    }
+    #noArchivedMessage {
+      color: #bbb;
+      text-align: center;
+      margin-top: 30px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <!-- Hamburger icon for Sidebar -->
+  <div id="hamburger" onclick="toggleSidebar()"
+      style="position: fixed; top: 20px; left: 20px; z-index: 1100; cursor: pointer;">
+      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
+  </div>
+
+  <!-- Sidebar Navigation -->
+  <div id="sidebar"
+      style="
+          position: fixed;
+          top: 0;
+          left: -260px;
+          width: 260px;
+          height: 100%;
+          background-color: #111;
+          box-shadow: 0 0 20px #d2aaff, 0 0 20px #bb95ce, 0 0 40px #cda8d8;
+          padding-top: 60px;
+          transition: left 0.3s ease;
+          z-index: 1050;
+          color: #7b34d2;
+          font-family: Arial, sans-serif;
+      ">
+      <a href="index3.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Home</a>
+      <a href="account.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Account</a>
+      <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Archived</a>
+      <a href="priority.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Priority</a>
+      <a href="scheduled.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Scheduled</a>
+      <a href="label.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Label</a>
+      <a href="#" id="logoutBtn" style="display: block; padding: 16px; color: #e74c3c; text-decoration: none; font-weight: bold;">Logout</a>
+      <div style="margin: 40px 20px;">
+          <label class="switch">
+              <span class="sun">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                      <g fill="#ffd43b">
+                          <circle r="5" cy="12" cx="12"></circle>
+                          <path d="m21 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm-17 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm13.66-5.66a1 1 0 0 1 -.66-.29 1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.71.71a1 1 0 0 1 -.75.29zm-12.02 12.02a1 1 0 0 1 -.71-.29 1 1 0 0 1 0-1.41l.71-.66a1 1 0 0 1 1.41 1.41l-.71.71a1 1 0 0 1 -.7.24zm6.36-14.36a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm0 17a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm-5.66-14.66a1 1 0 0 1 -.7-.29l-.71-.71a1 1 0 0 1 1.41-1.41l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.29zm12.02 12.02a1 1 0 0 1 -.7-.29l-.66-.71a1 1 0 0 1 1.36-1.36l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.24z">
+                      </path>
+                  </svg>
+              </span>
+              <span class="moon">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24">
+                      <path
+                          d="m223.5 32c-123.5 0-223.5 100.3-223.5 224s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6-96.9 0-175.5-78.8-175.5-176 0-65.8 36-123.1 89.3-153.3 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z">
+                      </path>
+                  </svg>
+              </span>
+              <input type="checkbox" id="modeToggle" class="mode-toggle input" />
+              <span class="slider"></span>
+          </label>
+      </div>
+  </div>
+
+  <!-- Github Icon-->
+  <div class="github-icon">
+    <a href="index2.html"><img src="images/main-icon.png" alt="Do-it icon"></a>
+  </div>
+  <div class="container-box">
+    <h1>Archived Tasks</h1>
+    <div id="archivedTasksContainer"></div>
+    <div id="noArchivedMessage">No archived tasks.</div>
+  </div>
+
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    sidebar.style.left = sidebar.style.left === "0px" ? "-260px" : "0px";
+  }
+
+  const API_BASE_URL = 'http://localhost:5000'; // Change if needed
+  const archivedTasksContainer = document.getElementById('archivedTasksContainer');
+  const noArchivedMessage = document.getElementById('noArchivedMessage');
+
+  // Fetch completed tasks from backend and render them
+  async function fetchAndRenderArchived() {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/tasks`, {
+        headers: {
+          'Authorization': 'Bearer ' + token
+        }
+      });
+      const tasks = await response.json();
+      const completed = tasks.filter(task => task.completed === true);
+      archivedTasksContainer.innerHTML = '';
+      if (completed.length === 0) {
+        noArchivedMessage.style.display = 'block';
+        return;
+      }
+      noArchivedMessage.style.display = 'none';
+      completed.forEach(task => {
+        archivedTasksContainer.innerHTML += `<div class="priority-task-card mb-3 ${task.priority ? 'priority-' + task.priority.toLowerCase() : ''}">
+          <h5>${task.title}</h5>
+          <div class="mb-2 d-flex flex-wrap align-items-center">
+            <span class="badge ${task.priority === 'High' ? 'badge-danger' : task.priority === 'Medium' ? 'badge-warning' : 'badge-success'}">${task.priority || ''} priority</span>
+            ${task.dueDate ? `<span class=\"badge badge-secondary ml-2\">Due: ${task.dueDate}</span>` : ''}
+          </div>` +
+          (task.label && Array.isArray(task.label) && task.label.length > 0 ? `<div class=\"mb-2 d-flex flex-wrap align-items-center\">${task.label.map(l => `<span class=\"tag-chip\">${l}</span>`).join('')}</div>` : '') +
+          (task.attachment && Array.isArray(task.attachment) && task.attachment.length > 0 ? `<div class=\"mb-2 d-flex flex-wrap align-items-center\">${task.attachment.map(url => `<a href=\"${url.startsWith('/uploads/') ? API_BASE_URL + url : url}\" target=\"_blank\" class=\"file-chip\">📎 ${url.split('/').pop()}</a>`).join('')}</div>` : '') +
+          (task.description && task.description.trim() !== '' ? `<p>${task.description}</p>` : '') +
+          `</div>`;
+      });
+    } catch (err) {
+      archivedTasksContainer.innerHTML = '<div>Failed to load archived tasks.</div>';
+      noArchivedMessage.style.display = 'none';
+    }
+  }
+
+  fetchAndRenderArchived();
+
+  // Login check
+  if (!localStorage.getItem('token')) {
+    window.location.href = 'login.html';
+  }
+  // Logout logic
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+    });
+  }
+</script>
+
+</body>
+</html>

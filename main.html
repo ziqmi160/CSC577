@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Do-It Landing Page</title>
+  <style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
+  background-size: 800% 800%;
+  color: #e6c9f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100vh;
+  overflow: hidden;
+  padding: 100px 20px 40px;
+  position: relative;
+
+  animation: gradientMove 20s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+    /* Navbar with only Sign In button */
+    .navbar {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      /* Removed left side menu-icon */
+    }
+
+    .sign-in {
+      background: #e6c9f0;
+      color: #2f004f;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 4px 8px rgba(230, 201, 240, 0.6);
+      transition: background-color 0.3s ease;
+    }
+    .sign-in:hover {
+      background-color: #d6b6e1;
+    }
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      width: 100%;
+      max-width: 1200px;
+      gap: 40px;
+      flex-wrap: wrap;
+      margin-top: 60px; /* Push main content down just a bit */
+    }
+
+    .text-content {
+      max-width: 520px;
+      flex: 1 1 400px;
+    }
+
+    h1 {
+      font-size: 3.6rem;
+      margin: 0 0 12px;
+      line-height: 1.1;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #f7e9ff;
+    }
+
+    h1 strong {
+      color: #d2aaff;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      margin-bottom: 20px;
+      font-weight: 600;
+      color: #cda8d8;
+    }
+
+    p {
+      font-size: 1.2rem;
+      color: #f3e7f7;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    .cta-button {
+      background: #cda8d8;
+      color: #2f004f;
+      padding: 14px 32px;
+      border: none;
+      border-radius: 40px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(205, 168, 216, 0.5);
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .cta-button:hover {
+      background-color: #bb95ce;
+      transform: translateY(-3px);
+    }
+
+    .illustration {
+      max-width: 420px;
+      flex: 1 1 350px;
+      user-select: none;
+      filter: drop-shadow(0 6px 12px rgba(50, 0, 80, 0.5));
+      transition: filter 0.3s ease;
+    }
+    .illustration img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      object-fit: contain;
+      display: block;
+    }
+    .illustration:hover {
+      filter: drop-shadow(0 10px 20px rgba(50, 0, 80, 0.8));
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column-reverse;
+        text-align: center;
+      }
+      .text-content, .illustration {
+        max-width: 100%;
+        flex: none;
+      }
+      .illustration {
+        margin-bottom: 30px;
+      }
+      .navbar {
+        right: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <button class="sign-in">SIGN IN</button>
+  </div>
+
+  <div class="container">
+    <div class="text-content">
+      <h1>Welcome to <br><strong>DO-IT</strong></h1>
+      <h2>Your Smart Planning Companion</h2>
+      <p>
+        Take control of your goals with Do-It — the smart way to plan.<br />
+        Organize, prioritize, and execute tasks efficiently, whether it’s daily to-dos, big projects, or team work. Do-It helps you plan better and achieve more with less stress.
+      </p>
+      <a href="index3.html">
+        <button class="cta-button" aria-label="Navigate to Do-It app">
+          Take me there →
+        </button>
+      </a>
+    </div>
+
+    <div class="illustration">
+      <img src="your-illustration.png" alt="Clipboard and Feather Illustration" />
+    </div>
+  </div>
+</body>
+</html>

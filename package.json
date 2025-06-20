@@ -1,0 +1,22 @@
+{
+  "name": "do-it",
+  "version": "1.0.0",
+  "description": "![image](https://user-images.githubusercontent.com/83400697/207388229-b6463c21-39cb-4926-98b1-b77f3c2790a1.png)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^8.15.2"
+  }
+}
