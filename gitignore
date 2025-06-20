@@ -1,0 +1,41 @@
+# Node.js
+node_modules/
+task-backend/node_modules/
+
+# Python
+semantic-service/.venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+task-backend/.venv
+semantic-service/.venv
+
+# File uploads
+uploads/
+task-backend/uploads/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE/project files
+.vscode/
+.vs/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+*.zip
+*.bak 
