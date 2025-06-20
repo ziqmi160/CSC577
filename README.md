@@ -70,7 +70,7 @@ cd ../semantic-service
 python -m venv .venv
 .venv/Scripts/activate  # On Windows
 source .venv/bin/activate  # On Mac/Linux
-pip install -r requirements.txt
+pip install Flask sentence-transformers pymongo scikit-learn #required python 3.12
 python semantic_service.py
 ```
 
