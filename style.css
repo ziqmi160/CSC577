@@ -1111,3 +1111,143 @@ li {
   font-size: 50px;
   color:rgb(227, 227, 227) !important;
 }
+
+/* Modal Overlay for Add Task Form */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.55);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-content {
+  background: #fff;
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px 0 rgba(0,0,0,0.25), 0 1.5px 8px 0 rgba(0,0,0,0.10);
+  position: relative;
+  min-width: 350px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 2100;
+  animation: modalPopIn 0.25s cubic-bezier(.4,2,.6,1) 1;
+}
+@keyframes modalPopIn {
+  0% { transform: scale(0.85) translateY(40px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.dark-mode .modal-content {
+  background: #23223a;
+  color: #fff;
+}
+.close-modal {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 2.2rem;
+  color: #888;
+  cursor: pointer;
+  z-index: 2200;
+  transition: color 0.2s;
+}
+.close-modal:hover {
+  color: #e74c3c;
+}
+
+/* Add Task Button Styling */
+#showAddFormBtn {
+  font-size: 1.15rem;
+  font-weight: 600;
+  padding: 0.7rem 2.2rem;
+  border-radius: 30px;
+  box-shadow: 0 2px 12px 0 #6c63ff22;
+  background: linear-gradient(90deg, #6c63ff 0%, #4fd1c5 100%);
+  color: #fff;
+  border: none;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+#showAddFormBtn:hover {
+  background: linear-gradient(90deg, #4fd1c5 0%, #6c63ff 100%);
+  box-shadow: 0 4px 24px 0 #6c63ff44;
+  transform: translateY(-2px) scale(1.04);
+}
+
+/* Modal Form Inputs */
+#addForm input[type="text"],
+#addForm textarea,
+#addForm select {
+  font-size: 1.08rem;
+  border-radius: 12px;
+  border: 1.5px solid #bdbdbd;
+  margin-bottom: 1.1rem;
+  padding: 0.7rem 1.1rem;
+  background: #f8f9fa;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px 0 #6c63ff11;
+}
+#addForm input[type="text"]:focus,
+#addForm textarea:focus,
+#addForm select:focus {
+  border: 1.5px solid #6c63ff;
+  outline: none;
+  background: #fff;
+}
+#addForm textarea {
+  min-height: 80px;
+  max-height: 200px;
+}
+#addForm .addbtn, #addForm .form_btn {
+  font-size: 1.08rem;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 0.6rem 2rem;
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+  box-shadow: 0 2px 8px 0 #6c63ff22;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+#addForm .addbtn:enabled {
+  background: linear-gradient(90deg, #6c63ff 0%, #4fd1c5 100%);
+  color: #fff;
+  border: none;
+}
+#addForm .addbtn:enabled:hover {
+  background: linear-gradient(90deg, #4fd1c5 0%, #6c63ff 100%);
+  box-shadow: 0 4px 16px 0 #6c63ff44;
+  transform: translateY(-1px) scale(1.03);
+}
+#addForm .addbtn:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  border: none;
+}
+#addForm .form_btn {
+  background: #fff;
+  color: #6c63ff;
+  border: 1.5px solid #6c63ff;
+}
+#addForm .form_btn:hover {
+  background: #6c63ff;
+  color: #fff;
+}
+
+/* Modal Heading */
+.modal-content h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: #6c63ff;
+  letter-spacing: 0.5px;
+}
+.dark-mode .modal-content h3 {
+  color: #4fd1c5;
+}

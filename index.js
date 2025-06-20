@@ -411,7 +411,7 @@
 //   // Handle Delete button click
 //   if (e.target.classList.contains("delete") || e.target.closest('.delete')) {
 //     e.preventDefault();
-//     const li = e.target.closest('li'); // Get the closest li element
+//     const li = e.target.closest('li');
 //     const taskId = li.dataset.taskId;
 
 //     if (!taskId) {
@@ -935,24 +935,27 @@ flatpickr(dueDateInput, {
 });
 
 // --- Initialization ---
-// function init() {
-//   // Ensure searchBar reference is correct for the element inside taskActions
-//   const searchBarElement = document.getElementById("searchBar");
-//   if (searchBarElement) {
-//       searchBarElement.addEventListener("input", handleSearch);
-//   }
+function init() {
+  const searchBarElement = document.getElementById("searchBar");
+  if (searchBarElement) {
+    searchBarElement.addEventListener("input", handleSearch);
+  }
 
-//   loadTasksFromAPI(); // Load tasks from API instead of Local Storage
-//   // tasksCheck() is called inside loadTasksFromAPI for correct timing
-//   themeSwitcher(); // Apply initial theme
-// }
+  // NEW: Add event listeners to the new checkboxes
+  const semanticCheckbox = document.getElementById('semanticSearchCheckbox');
+  const containsCheckbox = document.getElementById('containsSearchCheckbox');
 
-// --- Search Logic ---
-// function handleSearch() {
-//   const searchTerm = searchBar.value.trim(); // Trim whitespace
-//   // Send search term using 'q' query parameter for semantic text search
-//   loadTasksFromAPI(searchTerm ? `/tasks?q=${encodeURIComponent(searchTerm)}` : '/tasks');
-// }
+  if (semanticCheckbox) {
+      semanticCheckbox.addEventListener('change', handleSearch);
+  }
+  if (containsCheckbox) {
+      containsCheckbox.addEventListener('change', handleSearch);
+  }
+
+  loadTasksFromAPI(); // Load tasks from API instead of Local Storage
+  themeSwitcher(); // Apply initial theme
+}
+
 // --- Search Logic ---
 function handleSearch() {
   const searchTerm = searchBar.value.trim();
@@ -978,80 +981,64 @@ function handleSearch() {
   loadTasksFromAPI(endpoint);
 }
 
-// --- Initialization ---
-function init() {
-  const searchBarElement = document.getElementById("searchBar");
-  if (searchBarElement) {
-    searchBarElement.addEventListener("input", handleSearch);
-  }
-
-  // NEW: Add event listeners to the new checkboxes
-  const semanticCheckbox = document.getElementById('semanticSearchCheckbox');
-  const containsCheckbox = document.getElementById('containsSearchCheckbox');
-
-  if (semanticCheckbox) {
-      semanticCheckbox.addEventListener('change', handleSearch);
-  }
-  if (containsCheckbox) {
-      containsCheckbox.addEventListener('change', handleSearch);
-  }
-
-  loadTasksFromAPI(); // Load tasks from API instead of Local Storage
-  themeSwitcher(); // Apply initial theme
-}
-
-
 // --- UI State Check (hide/show elements based on task count) ---
 function tasksCheck() {
-  const tasks = taskList.children;
-  const taskActionsDiv = document.getElementById('taskActions'); // Get the taskActions div
-  const currentSearchTerm = searchBar.value.trim(); // Get current search input
-
-  // If there are no tasks AND no search term is active, hide the task actions section.
-  // Otherwise, if there are tasks OR a search term is active, show it.
+  const table = document.getElementById('taskList');
+  const tbody = table.querySelector('tbody');
+  const tasks = tbody.children;
+  const taskActionsDiv = document.getElementById('taskActions');
+  const currentSearchTerm = searchBar.value.trim();
   if (tasks.length === 0 && currentSearchTerm === '') {
-    taskActionsDiv.classList.add("hidden"); // Hide
+    taskActionsDiv.classList.add('hidden');
   } else {
-    taskActionsDiv.classList.remove("hidden"); // Show
+    taskActionsDiv.classList.remove('hidden');
   }
 }
 
 // --- Populate edit form with task data ---
 function handleEditItem(e) {
   e.preventDefault();
-  editTaskBtn.style.display = "inline";
-  submitBtn.style.display = "none";
-  const listItem = e.target.closest('li');
-  if (!listItem) return;
-  const titleElem = listItem.querySelector('h5');
-  const taskTitle = titleElem ? titleElem.textContent.trim() : '';
-  const taskDescriptionElement = listItem.querySelector("#description-at");
-  const taskDescription = taskDescriptionElement ? taskDescriptionElement.textContent.replace("Description:", "").trim() : "";
-  const taskDueDate = listItem.querySelector("#task-dueDate").textContent.replace("Due Date:", "").trim();
-  const taskPriority = listItem.querySelector("#task-priority").textContent.trim();
-  document.getElementById("item").value = taskTitle;
-  document.getElementById("description").value = taskDescription;
-  document.getElementById("dueDate").value = taskDueDate;
-  document.getElementById("priority").value = taskPriority;
+  // Show modal and set form for editing
+  const addTaskModal = document.getElementById('addTaskModal');
+  const addForm = document.getElementById('addForm');
+  const editTaskBtn = document.getElementById('editTask');
+  const submitBtn = document.getElementById('submitBtn');
+  addTaskModal.style.display = 'flex';
+  editTaskBtn.style.display = 'inline-block';
+  submitBtn.style.display = 'none';
+  editTaskBtn.disabled = false;
+  submitBtn.disabled = true;
+
+  const row = e.target.closest('tr');
+  if (!row) return;
+  const cells = row.children;
+  const taskTitle = cells[1].textContent.trim();
+  const taskDescription = cells[2].textContent.trim();
+  const taskDueDate = cells[3].textContent.trim();
+  const taskPriority = cells[4].textContent.trim();
   let labelArr = [];
-  if (listItem.dataset.label) {
-    try { labelArr = JSON.parse(listItem.dataset.label); } catch {}
+  if (row.dataset.label) {
+    try { labelArr = JSON.parse(row.dataset.label); } catch {}
   }
   let attachArr = [];
-  if (listItem.dataset.attachment) {
-    try { attachArr = JSON.parse(listItem.dataset.attachment); } catch {}
+  if (row.dataset.attachment) {
+    try { attachArr = JSON.parse(row.dataset.attachment); } catch {}
   }
-  setTags(labelArr); // Only modifies tagContainer
-  setAttachmentDisplay(attachArr); // Only modifies attachmentContainer
+  document.getElementById('item').value = taskTitle;
+  document.getElementById('description').value = taskDescription;
+  document.getElementById('dueDate').value = taskDueDate;
+  document.getElementById('priority').value = taskPriority;
+  setTags(labelArr);
+  setAttachmentDisplay(attachArr);
   tagInput.value = '';
   tagInput.disabled = false;
   addTagBtn.disabled = false;
   tagInput.style.display = '';
   addTagBtn.style.display = '';
-  document.getElementById("maintitle").innerText = "Edit your tasks below :";
-  editItem = listItem;
+  document.getElementById('maintitle').innerText = 'Edit your tasks below :';
+  editItem = row;
   document.documentElement.scrollTop = 0;
-  document.getElementById("item").focus();
+  document.getElementById('item').focus();
 }
 
 function setTags(tags) {
@@ -1059,7 +1046,7 @@ function setTags(tags) {
   (tags || []).forEach(tag => addTag(tag));
 }
 
-// Update handleEditClick to merge new and existing attachments
+// Update handleEditClick to hide modal after editing
 async function handleEditClick(e) {
   e.preventDefault();
   const itemInput = document.getElementById("item");
@@ -1116,13 +1103,15 @@ async function handleEditClick(e) {
     dueDateInput.value = "";
   document.getElementById("priority").value = "";
   document.getElementById("maintitle").innerText = "To Do List :";
-    editTaskBtn.style.display = "none";
-    submitBtn.style.display = "inline";
+    document.getElementById('editTask').style.display = "none";
+    document.getElementById('submitBtn').style.display = "inline-block";
   tagContainer.innerHTML = '';
   fileInput.value = '';
   selectedFiles = [];
   editExistingAttachments = [];
   attachmentContainer.innerHTML = '';
+  // Hide modal after editing
+  document.getElementById('addTaskModal').style.display = 'none';
   loadTasksFromAPI();
 }
 
@@ -1339,8 +1328,8 @@ async function handleItemClick(e) {
   // Handle Delete button click
   if (e.target.classList.contains("delete") || e.target.closest('.delete')) {
     e.preventDefault();
-    const li = e.target.closest('li'); // Get the closest li element
-    const taskId = li.dataset.taskId;
+    const tr = e.target.closest('tr'); // Get the closest table row
+    const taskId = tr.dataset.taskId;
 
     if (!taskId) {
       displayErrorMessage("Error: Task ID not found for deletion.");
@@ -1393,10 +1382,10 @@ async function handleItemClick(e) {
 
   // Handle Mark as Complete checkbox click
   if (e.target.classList.contains("task-completed-checkbox")) { // Use the new class
-    const li = e.target.closest('li');
-    const taskId = li.dataset.taskId;
+    const tr = e.target.closest('tr');
+    const taskId = tr.dataset.taskId;
     const isCompleted = e.target.checked;
-    const editButton = li.querySelector(".edit");
+    const editButton = tr.querySelector(".edit");
 
     if (!taskId) {
       displayErrorMessage("Error: Task ID not found for status update.");
@@ -1413,13 +1402,10 @@ async function handleItemClick(e) {
       displaySuccessMessage(`Task marked as ${isCompleted ? 'completed' : 'incomplete'}!`);
       // Update local UI immediately without full reload for responsiveness
       if (isCompleted) {
-        li.classList.add("task-completed");
+        tr.classList.add("task-completed");
         if (editButton) editButton.style.display = 'none';
       } else {
-        li.classList.remove("task-completed");
-        // Re-apply original priority class if available, or just remove 'task-completed'
-        const currentPriority = li.querySelector("#task-priority").textContent.trim();
-        li.classList.add(priorityColors[currentPriority] || '');
+        tr.classList.remove("task-completed");
         if (editButton) editButton.style.display = 'block';
       }
     } catch (error) {
@@ -1455,122 +1441,111 @@ function displayErrorMessage(message) {
 // --- Load Tasks from API ---
 async function loadTasksFromAPI(endpoint = '/tasks') {
   try {
-    const tasks = await apiFetch(endpoint);
-
+    const table = document.getElementById('taskList');
+    const tbody = table.querySelector('tbody');
     // Clear current tasks from the DOM
-    while (taskList.firstChild) {
-      taskList.removeChild(taskList.firstChild);
+    while (tbody.firstChild) {
+      tbody.removeChild(tbody.firstChild);
     }
-
+    const tasks = await apiFetch(endpoint);
     if (tasks.length > 0) {
       tasks.forEach((task) => {
-        const li = document.createElement('li');
-        li.className = `list-group-item card shadow mb-4 bg-transparent ${priorityColors[task.priority] || ''}${task.completed ? ' task-completed' : ''}`;
-        li.dataset.taskId = task._id;
-        li.dataset.label = JSON.stringify(task.label || []);
-        li.dataset.attachment = JSON.stringify(task.attachment || []);
+        const tr = document.createElement('tr');
+        tr.dataset.taskId = task._id;
+        tr.dataset.label = JSON.stringify(task.label || []);
+        tr.dataset.attachment = JSON.stringify(task.attachment || []);
+        if (task.completed) {
+          tr.classList.add('task-completed');
+        }
 
-  const completeCheckbox = document.createElement("input");
-  completeCheckbox.type = "checkbox";
-        completeCheckbox.className = "form-check-input task-completed-checkbox";
+        // Checkbox
+        const tdCheckbox = document.createElement('td');
+        const completeCheckbox = document.createElement('input');
+        completeCheckbox.type = 'checkbox';
+        completeCheckbox.className = 'form-check-input task-completed-checkbox';
         completeCheckbox.checked = task.completed;
-        completeCheckbox.addEventListener("change", handleItemClick);
+        completeCheckbox.addEventListener('change', handleItemClick);
+        tdCheckbox.appendChild(completeCheckbox);
+        tr.appendChild(tdCheckbox);
 
-  const deleteButton = document.createElement("button");
-  deleteButton.type = "button";
-  deleteButton.className = "btn btn-outline-danger float-right delete";
-        deleteButton.innerHTML = '<ion-icon name="trash-outline" style="font-size: 20px"></ion-icon>';
-  deleteButton.style.paddingTop = "10px";
-  deleteButton.style.PaddingRight = "10px";
-
-  const editButton = document.createElement("button");
-  editButton.className = "btn btn-outline-secondary btn-sm float-right edit";
-        editButton.innerHTML = '<ion-icon name="create-outline" style="font-size: 20px"></ion-icon>';
-  editButton.style.marginRight = "8px";
-  editButton.style.paddingTop = "10px";
-  editButton.style.PaddingRight = "10px";
-  editButton.addEventListener("click", handleEditItem);
-
-  const descriptionParagraph = document.createElement("p");
-        if (task.description && task.description.trim() !== "") {
-    descriptionParagraph.className = "text-muted";
-    descriptionParagraph.id = "description-at";
-    descriptionParagraph.style.fontSize = "15px";
-    descriptionParagraph.style.margin = "0 19px";
-          descriptionParagraph.appendChild(document.createTextNode("Description: " + task.description));
-  }
-
-  const dateTimeParagraph = document.createElement("p");
-  dateTimeParagraph.className = "text-muted";
-  dateTimeParagraph.id = "created-at";
-  dateTimeParagraph.style.fontSize = "15px";
-  dateTimeParagraph.style.margin = "0 19px";
-        dateTimeParagraph.appendChild(document.createTextNode("Created: " + new Date(task.createdAt).toLocaleString()));
-
-  const dueDateParagraph = document.createElement("p");
-  dueDateParagraph.className = "text-muted";
-  dueDateParagraph.id = "task-dueDate";
-  dueDateParagraph.style.fontSize = "15px";
-  dueDateParagraph.style.margin = "0 19px";
-  dueDateParagraph.appendChild(document.createTextNode("Due Date: " + task.dueDate));
-
-  const priorityParagraph = document.createElement("p");
-  priorityParagraph.className = "text-muted";
-  priorityParagraph.id = "task-priority";
-  priorityParagraph.style.fontSize = "15px";
-  priorityParagraph.style.margin = "0 19px";
-  priorityParagraph.appendChild(document.createTextNode(task.priority));
-
-        // Add the task title as a prominent element at the top
-        const titleElem = document.createElement('h5');
-        titleElem.className = 'mb-1';
+        // Title
+        const tdTitle = document.createElement('td');
+        const titleElem = document.createElement('span');
         titleElem.textContent = task.title;
-        li.appendChild(titleElem);
+        titleElem.className = 'font-weight-bold';
+        tdTitle.appendChild(titleElem);
+        tr.appendChild(tdTitle);
 
-        // Render tags/labels as chips
+        // Description
+        const tdDesc = document.createElement('td');
+        tdDesc.textContent = task.description || '';
+        tr.appendChild(tdDesc);
+
+        // Due Date
+        const tdDue = document.createElement('td');
+        tdDue.textContent = task.dueDate || '';
+        tr.appendChild(tdDue);
+
+        // Priority
+        const tdPriority = document.createElement('td');
+        tdPriority.textContent = task.priority || '';
+        tdPriority.className = `priority-${(task.priority || '').toLowerCase()}`;
+        tr.appendChild(tdPriority);
+
+        // Tags
+        const tdTags = document.createElement('td');
         if (task.label && Array.isArray(task.label) && task.label.length > 0) {
-          const labelDiv = document.createElement('div');
-          labelDiv.style.margin = '8px 0';
           task.label.forEach(l => {
             const chip = document.createElement('span');
             chip.className = 'tag-chip badge badge-info mr-1';
             chip.textContent = l;
-            labelDiv.appendChild(chip);
+            tdTags.appendChild(chip);
           });
-          li.appendChild(labelDiv);
         }
+        tr.appendChild(tdTags);
 
-        // Render attachments as clickable links
+        // Attachments
+        const tdAttach = document.createElement('td');
         if (task.attachment && Array.isArray(task.attachment) && task.attachment.length > 0) {
-          const attachDiv = document.createElement('div');
-          attachDiv.style.margin = '8px 0';
           task.attachment.forEach(url => {
             const link = document.createElement('a');
-            // If the URL is relative, prepend the backend URL
             link.href = url.startsWith('/uploads/') ? API_BASE_URL + url : url;
             link.textContent = url.split('/').pop();
             link.target = '_blank';
             link.className = 'mr-2';
-            attachDiv.appendChild(link);
+            tdAttach.appendChild(link);
           });
-          li.appendChild(attachDiv);
         }
+        tr.appendChild(tdAttach);
 
-        // Insert description and other details after title and tags
-  if (task.description && task.description.trim() !== "") {
-    li.appendChild(descriptionParagraph);
-  }
-  li.appendChild(dateTimeParagraph);
-  li.appendChild(dueDateParagraph);
-  li.appendChild(priorityParagraph);
-        li.appendChild(completeCheckbox);
-        li.appendChild(deleteButton);
-        li.appendChild(editButton);
+        // Created Date
+        const tdCreated = document.createElement('td');
+        tdCreated.textContent = new Date(task.createdAt).toLocaleString();
+        tr.appendChild(tdCreated);
 
-  taskList.appendChild(li);
+        // Edit Button
+        const tdEdit = document.createElement('td');
+        const editButton = document.createElement('button');
+        editButton.className = 'btn btn-outline-secondary btn-sm edit';
+        editButton.innerHTML = '<ion-icon name="create-outline" style="font-size: 20px"></ion-icon>';
+        editButton.addEventListener('click', handleEditItem);
+        tdEdit.appendChild(editButton);
+        tr.appendChild(tdEdit);
+
+        // Delete Button
+        const tdDelete = document.createElement('td');
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'btn btn-outline-danger btn-sm delete';
+        deleteButton.innerHTML = '<ion-icon name="trash-outline" style="font-size: 20px"></ion-icon>';
+        deleteButton.addEventListener('click', handleItemClick);
+        tdDelete.appendChild(deleteButton);
+        tr.appendChild(tdDelete);
+
+        tbody.appendChild(tr);
       });
     }
-    tasksCheck(); // <--- This must be called *after* tasks are rendered
+    tasksCheck();
   } catch (error) {
     displayErrorMessage('Failed to load tasks.');
   }
@@ -1921,4 +1896,39 @@ async function uploadFiles(files) {
   if (!uploadResponse.ok) throw new Error('File upload failed');
   const data = await uploadResponse.json();
   return data.files; // Array of URLs
+}
+
+// Modal logic for Add Task
+const showAddFormBtn = document.getElementById('showAddFormBtn');
+const addTaskModal = document.getElementById('addTaskModal');
+const closeAddFormBtn = document.getElementById('closeAddFormBtn');
+const addForm = document.getElementById('addForm');
+
+function showAddTaskModal() {
+  addForm.reset();
+  document.getElementById('submitBtn').disabled = true;
+  addTaskModal.style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('item').focus();
+  }, 100);
+}
+function hideAddTaskModal() {
+  addTaskModal.style.display = 'none';
+  addForm.reset();
+  document.getElementById('submitBtn').disabled = true;
+}
+if (showAddFormBtn) showAddFormBtn.addEventListener('click', showAddTaskModal);
+if (closeAddFormBtn) closeAddFormBtn.addEventListener('click', hideAddTaskModal);
+if (addForm) {
+  addForm.addEventListener('submit', function(e) {
+    // Let the normal addItem logic run, but hide modal after
+    setTimeout(hideAddTaskModal, 200); // Hide after add
+  });
+}
+
+// Optional: Hide modal if user clicks outside modal-content
+if (addTaskModal) {
+  addTaskModal.addEventListener('click', function(e) {
+    if (e.target === addTaskModal) hideAddTaskModal();
+  });
 }
