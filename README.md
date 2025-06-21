@@ -51,8 +51,7 @@ No build step required. All frontend code is in plain HTML/CSS/JS.
 ### 3. Setup Backend (Node.js/Express)
 ```bash
 cd task-backend
-npm install
-# Create a .env file (see below)
+npm install dotenv express mongoose cors multer path jsonwebtoken
 node server.js
 ```
 
@@ -64,13 +63,13 @@ JWT_SECRET=your_jwt_secret
 PYTHON_SERVICE_URL=http://localhost:5001
 ```
 
-### 4. Setup Semantic Search Service (Python)
+### 4. Setup Semantic Search Service (Python 3.12)
 ```bash
 cd ../semantic-service
 python -m venv .venv
 .venv/Scripts/activate  # On Windows
 source .venv/bin/activate  # On Mac/Linux
-pip install -r requirements.txt
+pip install Flask sentence-transformers pymongo scikit-learn 
 python semantic_service.py
 ```
 
