@@ -145,58 +145,61 @@
             <img onclick="topFunction()" src="./scroll_img.svg" id="myBtn">
             <h1 class="text-center titleText "><span id="element"></span></h1>
             
-            <div class="container main mt-5 w-80 animate__animated  animate__fadeInDown animate__slow animate__delay-2s">
-                <h3 class="text-left mb-4" id="maintitle">To Do List :</h3>
+            <!-- Add Task Button -->
+            <div class="text-right mb-3">
+                <button id="showAddFormBtn" class="btn btn-success">Add Task</button>
+            </div>
 
-                <!-- form components to add new task -->
-                <form id="addForm" class="row w-100 d-flex flex-wrap justify-content-between align-items-center">
-
-                    <!-- task field -->
-                    <input class="form-control inputcss" type="text" onkeyup="enableSubmit(this, 'submitBtn')" id="item"
-                        placeholder="Enter Task Name..." />
-
-                    <!-- description field -->
-                    <textarea style="overflow-y: scroll; resize: none;width:100%;" class="inputcss mb-3"
-                        placeholder="Enter Description " id="description"></textarea>
-
-                    <!-- priority dropdown list -->
-                    <select id="priority">
-                        <option value="" selected disabled hidden>Select Priority</option>
-                        <option value="Low" style="background:rgba(84, 211, 0, 0.605); color:rgba(42, 105, 0, 0.395) ;"
-                            onfocus="this.size=3">Low</option>
-                        <option value="Medium" style="background:rgba(255, 225, 125, 0.788); color: rgba(194, 149, 0, 0.788);"
-                            onfocus="this.size=3">Medium</option>
-                        <option value="High" style="background:rgba(255, 120, 120, 0.786);color:rgba(191, 0, 0, 0.786);"
-                            onfocus="this.size=3">High</option>
-                    </select>
-
-                    <!-- date button -->
-                    <input class="btn btn-dark" id="dueDate" placeholder="Date" />
-
-                    <!-- NEW: Tags input field -->
-                    <div class="w-100 mb-3">
-                        <div class="d-flex">
-                            <input type="text" id="tagInput" class="form-control inputcss" placeholder="Add tags (comma separated)..." />
-                            <button type="button" id="addTagBtn" class="btn btn-outline-primary ml-2">Add Tag</button>
+            <!-- Add Task Modal Overlay -->
+            <div id="addTaskModal" class="modal-overlay" style="display:none;">
+                <div class="modal-content">
+                    <button id="closeAddFormBtn" class="close-modal">&times;</button>
+                    <h3 class="mb-3">Add New Task</h3>
+                    <form id="addForm" class="row w-100 d-flex flex-wrap justify-content-between align-items-center">
+                        <!-- task field -->
+                        <input class="form-control inputcss" type="text" onkeyup="enableSubmit(this, 'submitBtn')" id="item"
+                            placeholder="Enter Task Name..." />
+                        <!-- description field -->
+                        <textarea style="overflow-y: scroll; resize: none;width:100%;" class="inputcss mb-3"
+                            placeholder="Enter Description " id="description"></textarea>
+                        <!-- priority dropdown list -->
+                        <select id="priority">
+                            <option value="" selected disabled hidden>Select Priority</option>
+                            <option value="Low" style="background:rgba(84, 211, 0, 0.605); color:rgba(42, 105, 0, 0.395) ;"
+                                onfocus="this.size=3">Low</option>
+                            <option value="Medium" style="background:rgba(255, 225, 125, 0.788); color: rgba(194, 149, 0, 0.788);"
+                                onfocus="this.size=3">Medium</option>
+                            <option value="High" style="background:rgba(255, 120, 120, 0.786);color:rgba(191, 0, 0, 0.786);"
+                                onfocus="this.size=3">High</option>
+                        </select>
+                        <!-- date button -->
+                        <input class="btn btn-dark" id="dueDate" placeholder="Date" />
+                        <!-- NEW: Tags input field -->
+                        <div class="w-100 mb-3">
+                            <div class="d-flex">
+                                <input type="text" id="tagInput" class="form-control inputcss" placeholder="Add tags (comma separated)..." />
+                                <button type="button" id="addTagBtn" class="btn btn-outline-primary ml-2">Add Tag</button>
+                            </div>
+                            <div id="tagContainer" class="mt-2"></div>
                         </div>
-                        <div id="tagContainer" class="mt-2"></div>
-                    </div>
+                        <!-- NEW: File attachment field -->
+                        <div class="w-100 mb-3">
+                            <label for="fileAttachment" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-paperclip"></i> Attach Files (Max 10MB each)
+                            </label>
+                            <input type="file" id="fileAttachment" multiple style="display: none;" accept="*/*" />
+                            <div id="attachmentContainer" class="mt-2"></div>
+                        </div>
+                        <input type="submit" class="btn btn-outline-success addbtn" id="submitBtn" value="Add" style="width:80px"
+                            disabled />
+                        <button id="editTask" class="form_btn btn btn-outline-primary " style="display: none;  width:80px;">
+                            Edit
+                        </button>
+                    </form>
+                </div>
+            </div>
 
-                    <!-- NEW: File attachment field -->
-                    <div class="w-100 mb-3">
-                        <label for="fileAttachment" class="btn btn-outline-secondary w-100">
-                            <i class="fas fa-paperclip"></i> Attach Files (Max 10MB each)
-                        </label>
-                        <input type="file" id="fileAttachment" multiple style="display: none;" accept="*/*" />
-                        <div id="attachmentContainer" class="mt-2"></div>
-                    </div>
-
-                    <input type="submit" class="btn btn-outline-success addbtn" id="submitBtn" value="Add" style="width:80px"
-                        disabled />
-                    <button id="editTask" class="form_btn btn btn-outline-primary " style="display: none;  width:80px;">
-                        Edit
-                    </button>
-                </form>
+                <h3 class="text-left mb-4" id="maintitle">To Do List :</h3>
 
                 <!-- form to display all tasks loaded from API -->
                 <div class="text-center">
@@ -272,7 +275,25 @@
 
                         <!--Dynamic Task list-->
                         <form id="newTaskForm" class="mt-3">
-                            <ul class="list-group " id="taskList"></ul>
+                            <table class="table table-bordered table-hover" id="taskList">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th scope="col">Done</th>
+                                        <th scope="col">Title</th>
+                                        <th scope="col">Description</th>
+                                        <th scope="col">Due Date</th>
+                                        <th scope="col">Priority</th>
+                                        <th scope="col">Tags</th>
+                                        <th scope="col">Attachments</th>
+                                        <th scope="col">Created</th>
+                                        <th scope="col">Edit</th>
+                                        <th scope="col">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Task rows will be dynamically inserted here -->
+                                </tbody>
+                            </table>
                         </form>
                         <button id="clearAllTasks" class="btn btn-outline-danger clear_btn" onclick="clearAllTasks();">
                             <span class="d-flex align-items-center">
@@ -280,7 +301,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
             <br />
         </div>
     </div>
