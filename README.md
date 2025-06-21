@@ -64,13 +64,13 @@ JWT_SECRET=your_jwt_secret
 PYTHON_SERVICE_URL=http://localhost:5001
 ```
 
-### 4. Setup Semantic Search Service (Python)
+### 4. Setup Semantic Search Service (Python 3.12)
 ```bash
 cd ../semantic-service
 python -m venv .venv
 .venv/Scripts/activate  # On Windows
 source .venv/bin/activate  # On Mac/Linux
-pip install Flask sentence-transformers pymongo scikit-learn #required python 3.12
+pip install Flask sentence-transformers pymongo scikit-learn 
 python semantic_service.py
 ```
 
