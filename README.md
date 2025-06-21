@@ -51,8 +51,7 @@ No build step required. All frontend code is in plain HTML/CSS/JS.
 ### 3. Setup Backend (Node.js/Express)
 ```bash
 cd task-backend
-npm install
-# Create a .env file (see below)
+npm install dotenv express mongoose cors multer path jsonwebtoken
 node server.js
 ```
 
