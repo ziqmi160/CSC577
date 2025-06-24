@@ -404,6 +404,7 @@
 //   };
 
 //   await addTaskToAPI(taskData);
+//   hideAddTaskModal(); // Close the modal after successful addition
 // }
 
 // // --- Handle Item Click (Delete and Mark Complete) ---
@@ -638,12 +639,13 @@
 
 // // --- Theme Toggling ---
 // function toggleMode() {
-//   document.body.classList.toggle("dark-mode");
-//   document.body.classList.toggle("light-mode");
-//   if (modeToggleBtn.checked === true) {
+//   const isDarkMode = document.body.classList.toggle("dark-mode");
+//   document.body.classList.toggle("light-mode", !isDarkMode);
+
+//   if (isDarkMode) {
 //     localStorage.setItem("dark-mode", "enabled");
 //   } else {
-//     localStorage.setItem("dark-mode", null);
+//     localStorage.setItem("dark-mode", "disabled");
 //   }
 // }
 
@@ -936,6 +938,11 @@ flatpickr(dueDateInput, {
 
 // --- Initialization ---
 function init() {
+  // Initialize theme switcher
+  themeSwitcher();
+
+  const path = window.location.pathname;
+  if (path.endsWith("index3.html") || path.endsWith("priority.html") || path.endsWith("scheduled.html") || path.endsWith("archived.html") || path.endsWith("label.html")) {
   const searchBarElement = document.getElementById("searchBar");
   if (searchBarElement) {
     searchBarElement.addEventListener("input", handleSearch);
@@ -953,7 +960,7 @@ function init() {
   }
 
   loadTasksFromAPI(); // Load tasks from API instead of Local Storage
-  themeSwitcher(); // Apply initial theme
+  }
 }
 
 // --- Search Logic ---
@@ -1039,6 +1046,10 @@ function handleEditItem(e) {
   editItem = row;
   document.documentElement.scrollTop = 0;
   document.getElementById('item').focus();
+  // In handleEditItem, set the modal title to 'Edit Task'
+  document.getElementById('addTaskModalTitle').innerText = 'Edit Task';
+  // In handleEditItem, refresh the existing tags dropdown
+  populateExistingTagsDropdown();
 }
 
 function setTags(tags) {
@@ -1265,6 +1276,7 @@ async function addTaskToAPI(taskData) {
     document.getElementById("dueDate").value = "";
     document.getElementById("description").value = "";
     document.getElementById("priority").value = "";
+    hideAddTaskModal();
   } catch (error) {
     // Check if the error is due to a duplicate task title from backend (status 409)
     if (error.message && error.message.includes('Task with this title already exists.')) {
@@ -1558,12 +1570,13 @@ function enableSubmit(ref, btnID) {
 
 // --- Theme Toggling ---
 function toggleMode() {
-  document.body.classList.toggle("dark-mode");
-  document.body.classList.toggle("light-mode");
-  if (modeToggleBtn.checked === true) {
+  const isDarkMode = document.body.classList.toggle("dark-mode");
+  document.body.classList.toggle("light-mode", !isDarkMode);
+
+  if (isDarkMode) {
     localStorage.setItem("dark-mode", "enabled");
   } else {
-    localStorage.setItem("dark-mode", null);
+    localStorage.setItem("dark-mode", "disabled");
   }
 }
 
@@ -1695,23 +1708,16 @@ function themeSwitcher() {
   const modeToggleBtn = document.getElementById("modeToggle");
   if (!modeToggleBtn) return; // Exit if button not found
 
-  if (localStorage.length === 0 || localStorage.getItem("dark-mode") === null) {
-    const prefersDarkScheme = window.matchMedia("(prefers-color-scheme: dark)");
-    if (prefersDarkScheme.matches) {
-      document.body.classList.add("dark-mode"); // Add, not toggle for initial setup
-      localStorage.setItem("dark-mode", "enabled");
-      modeToggleBtn.checked = true;
-    } else {
-      document.body.classList.add("light-mode"); // Add, not toggle
-      localStorage.setItem("dark-mode", null);
-    }
-  } else {
-    if (localStorage.getItem("dark-mode") === "enabled") {
+  const userPreference = localStorage.getItem("dark-mode");
+
+  if (userPreference === "enabled") {
       document.body.classList.add("dark-mode");
+    document.body.classList.remove("light-mode");
       modeToggleBtn.checked = true;
     } else {
       document.body.classList.add("light-mode");
-    }
+    document.body.classList.remove("dark-mode");
+    modeToggleBtn.checked = false;
   }
 }
 // Initial call to set theme, now moved inside DOMContentLoaded
@@ -1911,6 +1917,8 @@ function showAddTaskModal() {
   setTimeout(() => {
     document.getElementById('item').focus();
   }, 100);
+  // In showAddTaskModal (when opening for a new task), set the modal title to 'Add New Task'
+  document.getElementById('addTaskModalTitle').innerText = 'Add New Task';
 }
 function hideAddTaskModal() {
   addTaskModal.style.display = 'none';
@@ -1922,7 +1930,7 @@ if (closeAddFormBtn) closeAddFormBtn.addEventListener('click', hideAddTaskModal)
 if (addForm) {
   addForm.addEventListener('submit', function(e) {
     // Let the normal addItem logic run, but hide modal after
-    setTimeout(hideAddTaskModal, 200); // Hide after add
+    hideAddTaskModal(); // Hide after add
   });
 }
 
@@ -1932,3 +1940,46 @@ if (addTaskModal) {
     if (e.target === addTaskModal) hideAddTaskModal();
   });
 }
+
+// --- Populate existing tags dropdown ---
+async function populateExistingTagsDropdown() {
+  const dropdown = document.getElementById('existingTagsDropdown');
+  if (!dropdown) return;
+  dropdown.innerHTML = '<option value="">Select existing tag</option>';
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch('http://localhost:5000/tasks', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const tasks = await response.json();
+    const tagSet = new Set();
+    tasks.forEach(task => {
+      if (Array.isArray(task.label)) {
+        task.label.forEach(l => tagSet.add(l));
+      }
+    });
+    Array.from(tagSet).sort().forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      dropdown.appendChild(option);
+    });
+  } catch (err) {
+    // ignore
+  }
+}
+
+// Add selected tag from dropdown to tag input and as a chip
+const existingTagsDropdown = document.getElementById('existingTagsDropdown');
+if (existingTagsDropdown) {
+  existingTagsDropdown.addEventListener('change', function() {
+    const tag = this.value;
+    if (tag) {
+      addTag(tag);
+      this.value = '';
+    }
+  });
+}
+
+// Call populateExistingTagsDropdown when opening the modal
+if (showAddFormBtn) showAddFormBtn.addEventListener('click', populateExistingTagsDropdown);

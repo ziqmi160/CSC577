@@ -387,15 +387,18 @@ h3 {
 }
 
 .message {
-  width: 300px;
-  padding: 15px;
-  border: 2px solid;
-  border-radius: 5px;
-
   position: fixed;
-  z-index: 10;
-  top: 20px;
-  right: 20px;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 1rem;
+  z-index: 1100;
+  display: none;
+  min-width: 250px;
+  text-align: center;
 }
 
 .success-message {
@@ -1117,14 +1120,13 @@ li {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.55);
-  z-index: 2000;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
   justify-content: center;
-  backdrop-filter: blur(2px);
+  align-items: center;
+  z-index: 1050;
 }
 .modal-content {
   background: #fff;
@@ -1250,4 +1252,56 @@ li {
 }
 .dark-mode .modal-content h3 {
   color: #4fd1c5;
+}
+
+.dark-mode #dueDate {
+  background-color: #fff;
+  color: #000;
+}
+
+.main-page-container {
+    max-width: 1000px; /* Or another value to match other pages */
+    margin: 40px auto;
+    padding: 30px;
+    border-radius: 20px;
+}
+
+.light-mode .main-page-container {
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+.dark-mode .main-page-container {
+    background: rgba(40, 40, 40, 0.6);
+    box-shadow: 0 0 20px #d2aaff33, 0 0 40px #bb95ce22, 0 0 60px #cda8d822;
+}
+
+#dueDate.btn-dark {
+  background: linear-gradient(90deg, #1de9b6 0%, #1dc8e9 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+#dueDate.btn-dark:hover {
+  background: linear-gradient(90deg, #1dc8e9 0%, #1de9b6 100%) !important;
+  color: #fff !important;
+}
+.dark-mode #dueDate.btn-dark {
+  background: linear-gradient(90deg, #00bfae 0%, #00b8d4 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+.dark-mode #dueDate.btn-dark:hover {
+  background: linear-gradient(90deg, #00b8d4 0%, #00bfae 100%) !important;
+  color: #fff !important;
+}
+
+.container {
+  width: 98vw;
+  max-width: 98vw;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5vw;
+  padding-right: 1.5vw;
+  box-sizing: border-box;
+  /* Remove any previous max-width or width restrictions for full-page look */
 }

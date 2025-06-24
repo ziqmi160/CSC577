@@ -146,9 +146,9 @@
             <h1 class="text-center titleText "><span id="element"></span></h1>
             
             <!-- Add Task Button -->
-            <div class="text-right mb-3">
+            <!-- <div class="text-right mb-3">
                 <button id="showAddFormBtn" class="btn btn-success">Add Task</button>
-            </div>
+            </div> -->
 
             <!-- Add Task Modal Overlay -->
             <div id="addTaskModal" class="modal-overlay" style="display:none;">
@@ -222,40 +222,6 @@
                           </div>
                         </div>
 
-                        <!-- NEW: Filter section -->
-                        <div class="filter-section mb-3">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <select id="priorityFilter" class="form-control">
-                                        <option value="">All Priorities</option>
-                                        <option value="High">High Priority</option>
-                                        <option value="Medium">Medium Priority</option>
-                                        <option value="Low">Low Priority</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <select id="statusFilter" class="form-control">
-                                        <option value="">All Tasks</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="completed">Completed</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="date" id="dueDateFilter" class="form-control" placeholder="Filter by due date">
-                                </div>
-                                <div class="col-md-3">
-                                    <select id="tagFilter" class="form-control">
-                                        <option value="">All Tags</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-12 text-center">
-                                    <button id="clearFiltersBtn" class="btn btn-outline-secondary">Clear Filters</button>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- sorting elements -->
                         <div class="text-center">
                             <div class="dropdown d-inline-block">
@@ -305,6 +271,11 @@
         </div>
     </div>
 
+    <!-- Floating Add Task Button -->
+    <button id="showAddFormBtn" class="btn btn-success fab-add-task" style="position: fixed; bottom: 32px; right: 32px; z-index: 1200; border-radius: 50%; width: 64px; height: 64px; font-size: 2rem; box-shadow: 0 4px 16px rgba(123,52,210,0.18); display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-plus"></i>
+    </button>
+
     <!-- Toggle Sidebar Script -->
     <script>
         function toggleSidebar() {
@@ -334,16 +305,6 @@
         }
         startTypedAnimation();
     </script>
-
-    <!-- button to start adding tasks by voice -->
-    <button id="voice-command-button" title="Voice Command Format:
-  - To Add Task: 'Add [task] due [YYYY-MM-DD] priority [high/medium/low] description [optional description]'
-  - To Delete Task: 'Delete task [task title]'
-  - To Edit Task: 'Edit task [old task title] to [new task title] due date [YYYY-MM-DD] priority [new priority] description [optional description]'"
-        class="btn btn-outline-primary btn-lg voice-input animate__animated animate__fadeInRightBig animate__slow animate__delay-2s"
-        style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-        <i class="fas fa-microphone"></i>
-    </button>
 
     <script>
     document.getElementById('logoutBtn').addEventListener('click', function(e) {

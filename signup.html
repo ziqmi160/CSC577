@@ -122,6 +122,15 @@
     </div>
   </div>
   <script>
+  // Check if user is already logged in
+  document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // User is already logged in, redirect to the main app
+      window.location.href = 'index3.html';
+    }
+  });
+
   document.querySelector('form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const username = this.elements['username'].value;
@@ -130,7 +139,12 @@
     const confirmPassword = this.elements['confirmPassword'].value;
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+      alert('Passwords do not match! Please try again.');
+      return;
+    }
+
+    if (password.length < 8) {
+      alert('Password must be at least 8 characters long.');
       return;
     }
 
@@ -147,13 +161,13 @@
         data = { message: 'Unexpected server response' };
       }
       if (res.ok) {
-        alert('Signup successful! Redirecting to login...');
+        alert('Account created successfully! Please sign in to continue.');
         window.location.href = 'login.html';
       } else {
-        alert(data.message || 'Signup failed');
+        alert(data.message || 'Signup failed. Please try again.');
       }
     } catch (err) {
-      alert('Network or server error. Please try again.');
+      alert('Network error. Please check your connection and try again.');
     }
   });
   </script>

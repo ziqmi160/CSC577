@@ -35,15 +35,16 @@ body {
   }
 }
 
-    /* Navbar with only Sign In button */
+    /* Navbar with Sign In and Sign Up buttons */
     .navbar {
       position: absolute;
       top: 20px;
       right: 30px;
-      /* Removed left side menu-icon */
+      display: flex;
+      gap: 15px;
     }
 
-    .sign-in {
+    .sign-in, .sign-up {
       background: #e6c9f0;
       color: #2f004f;
       border: none;
@@ -53,10 +54,13 @@ body {
       cursor: pointer;
       font-size: 1rem;
       box-shadow: 0 4px 8px rgba(230, 201, 240, 0.6);
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      text-decoration: none;
+      display: inline-block;
     }
-    .sign-in:hover {
+    .sign-in:hover, .sign-up:hover {
       background-color: #d6b6e1;
+      transform: translateY(-2px);
     }
 
     .container {
@@ -116,6 +120,7 @@ body {
       cursor: pointer;
       box-shadow: 0 6px 12px rgba(205, 168, 216, 0.5);
       transition: background-color 0.3s ease, transform 0.2s ease;
+      text-decoration: none;
     }
     .cta-button:hover {
       background-color: #bb95ce;
@@ -154,13 +159,16 @@ body {
       }
       .navbar {
         right: 20px;
+        flex-direction: column;
+        gap: 10px;
       }
     }
   </style>
 </head>
 <body>
   <div class="navbar">
-    <button class="sign-in">SIGN IN</button>
+    <a href="login.html" class="sign-in">SIGN IN</a>
+    <a href="signup.html" class="sign-up">SIGN UP</a>
   </div>
 
   <div class="container">
@@ -169,18 +177,125 @@ body {
       <h2>Your Smart Planning Companion</h2>
       <p>
         Take control of your goals with Do-It — the smart way to plan.<br />
-        Organize, prioritize, and execute tasks efficiently, whether it’s daily to-dos, big projects, or team work. Do-It helps you plan better and achieve more with less stress.
+        Organize, prioritize, and execute tasks efficiently, whether it's daily to-dos, big projects, or team work. Do-It helps you plan better and achieve more with less stress.
       </p>
-      <a href="index3.html">
-        <button class="cta-button" aria-label="Navigate to Do-It app">
-          Take me there →
+      <a href="signup.html">
+        <button class="cta-button" aria-label="Get started with Do-It">
+          Get Started →
         </button>
       </a>
     </div>
 
     <div class="illustration">
-      <img src="your-illustration.png" alt="Clipboard and Feather Illustration" />
+      <img src="images/todoWhite.png" alt="Do-It Task Management Illustration" />
     </div>
   </div>
+
+  <script>
+    // Check if user is already logged in
+    document.addEventListener('DOMContentLoaded', function() {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // User is already logged in, redirect to the main app
+        window.location.href = 'index3.html';
+      }
+
+      // Check for URL parameters to show notifications
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      if (urlParams.get('auth') === 'required') {
+        // Remove the parameter from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Show notification
+        showNotification('Please sign in to access the task management features.', 'info');
+      }
+      
+      if (urlParams.get('logout') === 'success') {
+        // Remove the parameter from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Show notification
+        showNotification('You have been successfully logged out.', 'success');
+      }
+    });
+
+    // Function to show notifications
+    function showNotification(message, type = 'info') {
+      // Create notification element
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        z-index: 10000;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease-out;
+      `;
+
+      // Set background color based on type
+      if (type === 'success') {
+        notification.style.backgroundColor = '#28a745';
+      } else if (type === 'error') {
+        notification.style.backgroundColor = '#dc3545';
+      } else {
+        notification.style.backgroundColor = '#17a2b8';
+      }
+
+      notification.textContent = message;
+
+      // Add CSS animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes slideOut {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Add to page
+      document.body.appendChild(notification);
+
+      // Auto-remove after 5 seconds
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 5000);
+
+      // Allow manual close on click
+      notification.addEventListener('click', () => {
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      });
+    }
+  </script>
 </body>
 </html>
