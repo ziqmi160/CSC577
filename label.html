@@ -4,15 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Task Labels</title>
-     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-    integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=="
-    crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <style>
     body {
         margin: 0;
@@ -20,7 +13,7 @@
       background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
       background-size: 800% 800%;
       color: #e6c9f0;
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -35,7 +28,6 @@
 
     .container-box {
       max-width: 800px;
-      height: 500px;
       width: 100%;
       margin: auto;
       background: rgba(255, 255, 255, 0.05);
@@ -57,9 +49,16 @@
       text-align: center;
       margin-bottom: 20px;
     }
+
+    #labelsContainer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
   </style>
 </head>
-<body>
+<body class="light-mode">
   <!-- Hamburger icon for Sidebar -->
   <div id="hamburger" onclick="toggleSidebar()"
       style="position: fixed; top: 20px; left: 20px; z-index: 1100; cursor: pointer;">
@@ -84,6 +83,7 @@
           color: #7b34d2;
           font-family: Arial, sans-serif;
       ">
+      <a href="index3.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Home</a>
       <a href="account.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Account</a>
       <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Archived</a>
       <a href="priority.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Priority</a>
@@ -97,7 +97,7 @@
                       <g fill="#ffd43b">
                           <circle r="5" cy="12" cx="12"></circle>
                           <path d="m21 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm-17 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm13.66-5.66a1 1 0 0 1 -.66-.29 1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.71.71a1 1 0 0 1 -.75.29zm-12.02 12.02a1 1 0 0 1 -.71-.29 1 1 0 0 1 0-1.41l.71-.66a1 1 0 0 1 1.41 1.41l-.71.71a1 1 0 0 1 -.7.24zm6.36-14.36a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm0 17a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm-5.66-14.66a1 1 0 0 1 -.7-.29l-.71-.71a1 1 0 0 1 1.41-1.41l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.29zm12.02 12.02a1 1 0 0 1 -.7-.29l-.66-.71a1 1 0 0 1 1.36-1.36l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.24z">
-                      </path>
+                      </g>
                   </svg>
               </span>
               <span class="moon">
@@ -113,18 +113,10 @@
       </div>
   </div>
 
-  <!-- Github Icon-->
-  <div class="github-icon">
-    <a href="index2.html"><img src="images/main-icon.png" alt="Do-it icon"></a>
-  </div>
   <div class="container-box">
     <h1>Task Labels</h1>
-    <div id="labelsContainer" class="mb-4">
-      <!-- Dynamic labels will be inserted here -->
-    </div>
-    <div id="tasksByLabelContainer">
-      <!-- Tasks for selected label will be shown here -->
-    </div>
+    <div id="labelsContainer" class="mb-4"></div>
+    <div id="tasksByLabelContainer"></div>
   </div>
 </body>
 <script>
@@ -133,11 +125,10 @@
     sidebar.style.left = sidebar.style.left === "0px" ? "-260px" : "0px";
   }
 
-  const API_BASE_URL = 'http://localhost:5000'; // Change if needed
+  const API_BASE_URL = 'http://localhost:5000';
   const labelsContainer = document.getElementById('labelsContainer');
   const tasksByLabelContainer = document.getElementById('tasksByLabelContainer');
 
-  // Fetch all tasks, extract unique labels, and render them as clickable badges
   async function fetchAndRenderLabels() {
     try {
       const token = localStorage.getItem('token');
@@ -171,7 +162,6 @@
     }
   }
 
-  // Render all tasks with the given label
   function renderTasksByLabel(label, allTasks) {
     const filtered = allTasks.filter(task => Array.isArray(task.label) && task.label.includes(label));
     let html = `<h3 class="mb-3">Tasks with label: <span class="label-badge">${label}</span></h3>`;
@@ -214,22 +204,45 @@
     tasksByLabelContainer.innerHTML = html;
   }
 
-  // Initial load
   fetchAndRenderLabels();
 
-  // Login check
+  // Check authentication
   if (!localStorage.getItem('token')) {
-    window.location.href = 'login.html';
+    window.location.href = 'main.html?auth=required';
   }
 
-  // Logout logic
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      localStorage.removeItem('token');
-      window.location.href = 'login.html';
-    });
+  // Logout functionality
+  document.getElementById('logoutBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.removeItem('token');
+    window.location.href = 'main.html?logout=success';
+  });
+
+  const modeToggleBtn = document.getElementById("modeToggle");
+  modeToggleBtn.addEventListener("click", toggleMode);
+
+  function toggleMode() {
+      document.body.classList.toggle("dark-mode");
+      const isDarkMode = document.body.classList.contains("dark-mode");
+      localStorage.setItem("darkMode", isDarkMode);
+      if (isDarkMode) {
+          document.body.classList.remove("light-mode");
+      } else {
+          document.body.classList.add("light-mode");
+      }
   }
+
+  function themeSwitcher() {
+      if (localStorage.getItem("darkMode") === "true") {
+          document.body.classList.add("dark-mode");
+          document.body.classList.remove("light-mode");
+          document.getElementById("modeToggle").checked = true;
+      } else {
+          document.body.classList.remove("dark-mode");
+          document.body.classList.add("light-mode");
+          document.getElementById("modeToggle").checked = false;
+      }
+  }
+  themeSwitcher();
 </script>
 </html>

@@ -1,8 +1,18 @@
-# Do-it: Advanced To-Do List Application
+# Do-It Task Management Application
 
-A modern, full-stack To-Do List application with advanced features including semantic search, labels/tags, file attachments, and task prioritization. Built with HTML, CSS, JavaScript (frontend), Node.js/Express (backend), and Python (semantic search microservice).
+A smart task management application with semantic search capabilities and a beautiful user interface.
 
----
+## Application Flow
+
+### New User Journey:
+1. **Landing Page** (`main.html`) - Welcome page with app introduction
+2. **Sign Up** (`signup.html`) - Create new account
+3. **Sign In** (`login.html`) - Login to existing account
+4. **Main App** (`index3.html`) - Task management interface
+
+### Returning User Journey:
+1. **Landing Page** (`main.html`) - Automatically redirects to main app if already logged in
+2. **Main App** (`index3.html`) - Continue with task management
 
 ## Features
 - **Add, edit, delete, and view tasks**

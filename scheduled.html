@@ -26,7 +26,7 @@
       background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
       background-size: 800% 800%;
       color: #e6c9f0;
-      height: 100vh;
+      min-height: 100vh;
       overflow-y: auto;
       animation: gradientMove 20s ease infinite;
       padding: 20px;
@@ -45,7 +45,6 @@
       box-shadow: 0 0 20px #d2aaff, 0 0 40px #bb95ce, 0 0 60px #cda8d8;
       max-width: 1000px;
       width: 100%;
-      height: 500px;
       margin: auto;
     }
 
@@ -109,7 +108,7 @@
     }
   </style>
 </head>
-<body>
+<body class="light-mode">
 
       <!-- Github Icon-->
   <div class="github-icon">
@@ -125,8 +124,13 @@
 
     <!-- Search Bar -->
     <div class="search-container mb-3">
-      <input type="text" id="searchBar" placeholder="Search tasks..."
-             class="form-control w-75 mx-auto mt-3">
+      <div class="input-group w-75 mx-auto mt-3">
+        <input type="text" id="searchBar" placeholder="Search tasks..." class="form-control">
+        <div class="input-group-append">
+          <button id="searchBtn" class="btn btn-primary" type="button">Search</button>
+          <button id="clearSearchBtn" class="btn btn-secondary ml-2" type="button">Clear Result</button>
+        </div>
+      </div>
     </div>
 
     <!-- Task List -->
@@ -233,6 +237,86 @@ function toggleSidebar() {
     const sidebar = document.getElementById("sidebar");
     sidebar.style.left = sidebar.style.left === "0px" ? "-260px" : "0px";
 }
+
+document.getElementById('searchBtn').addEventListener('click', function() {
+  const query = document.getElementById('searchBar').value.trim().toLowerCase();
+  if (!query) {
+    fetchAndRenderActiveTasks();
+    return;
+  }
+  searchTasks(query);
+});
+document.getElementById('searchBar').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    document.getElementById('searchBtn').click();
+  }
+});
+
+async function searchTasks(query) {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
+      headers: {
+        'Authorization': 'Bearer ' + token
+      }
+    });
+    const tasks = await response.json();
+    const activeTasks = tasks.filter(task => !task.completed);
+    const filtered = activeTasks.filter(task =>
+      (task.title && task.title.toLowerCase().includes(query)) ||
+      (task.description && task.description.toLowerCase().includes(query)) ||
+      (Array.isArray(task.label) && task.label.some(l => l.toLowerCase().includes(query)))
+    );
+    taskList.innerHTML = '';
+    if (filtered.length === 0) {
+      noTasksMessage.style.display = 'block';
+    } else {
+      noTasksMessage.style.display = 'none';
+      filtered.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.style.background = '#fff';
+        li.style.borderRadius = '18px';
+        li.style.boxShadow = '0 2px 12px 0 #d2aaff33';
+        li.style.marginBottom = '24px';
+        li.style.padding = '24px 28px 18px 18px';
+        li.style.border = 'none';
+        let priorityColor = '#28a745';
+        if (task.priority === 'High') priorityColor = '#e74c3c';
+        else if (task.priority === 'Medium') priorityColor = '#ffc107';
+        li.innerHTML = `
+          <div style="display: flex; align-items: center; margin-bottom: 8px;">
+            <h5 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #2d174d;">${task.title}</h5>
+            <span style="margin-left: 16px; background: ${priorityColor}; color: #fff; border-radius: 12px; padding: 4px 14px; font-size: 0.95em; font-weight: 600;">
+              ${task.priority || '-'} Priority
+            </span>
+            ${task.dueDate ? `<span style="margin-left: 12px; background: #e0e0e0; color: #444; border-radius: 12px; padding: 4px 12px; font-size: 0.95em;">Due: ${task.dueDate}</span>` : ''}
+          </div>
+          ${task.description ? `<div style="margin-bottom: 8px; color: #444;"><b>Description:</b> ${task.description}</div>` : ''}
+          ${task.label && Array.isArray(task.label) && task.label.length > 0 ? `
+            <div style="margin-bottom: 8px;">
+              <b>Tags:</b> ${task.label.map(l => `<span style="background: #e3f2fd; color: #1976d2; border-radius: 12px; font-size: 0.92em; padding: 2px 12px; margin-right: 6px; margin-bottom: 4px; display: inline-block;">${l}</span>`).join(' ')}
+            </div>
+          ` : ''}
+          ${task.attachment && Array.isArray(task.attachment) && task.attachment.length > 0 ? `
+            <div style="margin-bottom: 8px;">
+              <b>Attachments:</b> ${task.attachment.map(url => `<a href='${url.startsWith('/uploads/') ? API_BASE_URL + url : url}' target='_blank' style="background: #f8f9fa; color: #6c63ff; border-radius: 12px; font-size: 0.92em; padding: 2px 12px; margin-right: 6px; margin-bottom: 4px; display: inline-block; text-decoration: none; border: 1px solid #e0e0e0;">📎 ${url.split('/').pop()}</a>`).join(' ')}
+            </div>
+          ` : ''}
+        `;
+        taskList.appendChild(li);
+      });
+    }
+  } catch (err) {
+    taskList.innerHTML = '<div>Failed to search tasks.</div>';
+    noTasksMessage.style.display = 'none';
+  }
+}
+
+document.getElementById('clearSearchBtn').addEventListener('click', function() {
+  document.getElementById('searchBar').value = '';
+  fetchAndRenderActiveTasks();
+});
 </script>
 
 <!-- loading all external/internal scripts -->
@@ -315,7 +399,27 @@ function toggleSidebar() {
     <a href="scheduled.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Scheduled</a>
     <a href="label.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Label</a>
     <a href="#" id="logoutBtn" style="display: block; padding: 16px; color: #e74c3c; text-decoration: none; font-weight: bold;">Logout</a>
-    <div style="margin: 40px 20px;"></div>
+    <div style="margin: 40px 20px;">
+        <label class="switch">
+            <span class="sun">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <g fill="#ffd43b">
+                        <circle r="5" cy="12" cx="12"></circle>
+                        <path d="m21 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm-17 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm13.66-5.66a1 1 0 0 1 -.66-.29 1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.71.71a1 1 0 0 1 -.75.29zm-12.02 12.02a1 1 0 0 1 -.71-.29 1 1 0 0 1 0-1.41l.71-.66a1 1 0 0 1 1.41 1.41l-.71.71a1 1 0 0 1 -.7.24zm6.36-14.36a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm0 17a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm-5.66-14.66a1 1 0 0 1 -.7-.29l-.71-.71a1 1 0 0 1 1.41-1.41l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.29zm12.02 12.02a1 1 0 0 1 -.7-.29l-.66-.71a1 1 0 0 1 1.36-1.36l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.24z">
+                    </g>
+                </svg>
+            </span>
+            <span class="moon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24">
+                    <path
+                        d="m223.5 32c-123.5 0-223.5 100.3-223.5 224s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6-96.9 0-175.5-78.8-175.5-176 0-65.8 36-123.1 89.3-153.3 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z">
+                    </path>
+                </svg>
+            </span>
+            <input type="checkbox" id="modeToggle" class="mode-toggle input" />
+            <span class="slider"></span>
+        </label>
+    </div>
 </div>
 <!-- Hamburger icon for Sidebar -->
 <div id="hamburger" onclick="toggleSidebar()"
@@ -326,19 +430,44 @@ function toggleSidebar() {
 </div>
 
 <script>
-// Login check
+// Check authentication
 if (!localStorage.getItem('token')) {
-    window.location.href = 'login.html';
+    window.location.href = 'main.html?auth=required';
 }
-// Logout logic
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        localStorage.removeItem('token');
-        window.location.href = 'login.html';
-    });
+
+// Logout functionality
+document.getElementById('logoutBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    localStorage.removeItem('token');
+    window.location.href = 'main.html?logout=success';
+});
+
+const modeToggleBtn = document.getElementById("modeToggle");
+modeToggleBtn.addEventListener("click", toggleMode);
+
+function toggleMode() {
+    document.body.classList.toggle("dark-mode");
+    const isDarkMode = document.body.classList.contains("dark-mode");
+    localStorage.setItem("darkMode", isDarkMode);
+    if (isDarkMode) {
+        document.body.classList.remove("light-mode");
+    } else {
+        document.body.classList.add("light-mode");
+    }
 }
+
+function themeSwitcher() {
+    if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark-mode");
+        document.body.classList.remove("light-mode");
+        document.getElementById("modeToggle").checked = true;
+    } else {
+        document.body.classList.remove("dark-mode");
+        document.body.classList.add("light-mode");
+        document.getElementById("modeToggle").checked = false;
+    }
+}
+themeSwitcher();
 </script>
 
 </body>
