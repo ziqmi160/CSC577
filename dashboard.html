@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do-It - Smart To-Do Dashboard</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Dashboard Styles -->
+    <link href="dashboard-styles.css" rel="stylesheet">
+    <style>
+        /* Custom CSS Variables for Light/Dark Mode */
+        :root {
+          --primary-accent: #7b34d2; /* Main accent color */
+          --text-color: #343a40; /* Dark text for light mode */
+          --background-color: #f8f9fa; /* Light background */
+          --card-bg: #ffffff; /* Card background in light mode */
+          --border-color: #dee2e6; /* Border color */
+          --shadow-color: rgba(0, 0, 0, 0.1);
+          --navbar-height: 60px; /* Default navbar height */
+          --navbar-height-mobile: 56px; /* Mobile navbar height */
+        }
+
+        [data-bs-theme="dark"] {
+          --text-color: #e2e6ea; /* Light text for dark mode */
+          --background-color: #212529; /* Dark background */
+          --card-bg: #343a40; /* Card background in dark mode */
+          --border-color: #495057; /* Darker border color */
+          --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+          font-family: "Inter", sans-serif;
+          background-color: var(--background-color);
+          color: var(--text-color);
+          transition: background-color 0.3s, color 0.3s;
+        }
+
+        .navbar {
+          background-color: var(--card-bg) !important; /* Use card background for navbar */
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.form-control.search-bar {
+  border: 1px solid var(--primary-accent);
+  box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+.form-control.search-bar::placeholder {
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.btn-primary-accent {
+  background-color: var(--primary-accent);
+  border-color: var(--primary-accent);
+  color: #ffffff;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+.btn-primary-accent:hover {
+  background-color: #6a2ca3; /* Slightly darker shade on hover */
+  border-color: #6a2ca3;
+  color: #ffffff;
+}
+.btn-primary-accent:focus {
+  box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.5);
+}
+
+/* Utility class for primary accent text color */
+.text-primary-accent {
+  color: var(--primary-accent);
+}
+
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0.125rem 0.25rem var(--shadow-color);
+  transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0.5rem 1rem var(--shadow-color);
+  cursor: pointer;
+}
+
+/* Task card styling for better interaction */
+.task-card {
+  transition: all 0.3s ease;
+}
+
+.task-card:active {
+  transform: scale(0.98);
+}
+
+/* Modal enhancements for task details */
+#taskDetailsModal .badge {
+  font-weight: 500;
+}
+
+#taskDetailsModal h6 {
+  color: var(--primary-accent);
+  letter-spacing: 0.5px;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+#taskDetailsAttachments a:hover {
+  color: var(--primary-accent);
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.4em 0.8em;
+  border-radius: 0.5rem;
+}
+
+.priority-high {
+  background-color: #dc3545;
+  color: white;
+} /* Red */
+.priority-medium {
+  background-color: #fd7e14;
+  color: white;
+} /* Orange */
+.priority-low {
+  background-color: #28a745;
+  color: white;
+} /* Green */
+
+.dropdown-menu {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+.dropdown-item {
+  color: var(--text-color);
+}
+.dropdown-item:hover,
+.dropdown-item:active {
+  background-color: var(--primary-accent) !important;
+  color: white !important;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-accent);
+  border-color: var(--primary-accent);
+}
+
+.action-icon {
+  color: var(--text-color);
+  font-size: 1.1rem;
+  margin-left: 0.75rem;
+  transition: color 0.2s ease-in-out;
+  cursor: pointer;
+}
+.action-icon:hover {
+  color: var(--primary-accent);
+}
+/* These color classes are already provided by Bootstrap - removing redundant overrides */ 
+/* Sidebar styles */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 250px;
+  z-index: 1020; /* Reduced from 1030 to be lower than the navbar */
+  background-color: var(--card-bg);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 2px 0 5px var(--shadow-color);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Enhanced easing for smoother animation */
+  overflow-y: auto;
+  padding-top: 0; /* Reset padding as we'll handle this in the content */
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden; /* Prevent horizontal scrollbar during transition */
+}
+.sidebar.collapsed {
+  width: 70px; /* Mini sidebar width */
+  transform: translateX(0); /* No horizontal movement */
+  opacity: 1;
+}
+
+/* Style adjustments for mini sidebar elements */
+.sidebar.collapsed .nav-link {
+  justify-content: center; /* Center icons */
+  padding: 0.75rem 0.5rem; /* Reduce horizontal padding */
+  margin: 0.25rem auto; /* Center in available width */
+  width: 45px; /* Fixed width for circle effect on hover/active */
+  height: 45px; /* Fixed height for circle effect */
+}
+
+.sidebar.collapsed .nav-link i,
+.sidebar.collapsed .nav-link svg {
+  margin-right: 0; /* Remove icon right margin when text is hidden */
+  font-size: 1.25rem; /* Slightly larger icons in mini mode */
+}
+
+.sidebar.collapsed .nav-link span {
+  display: none; /* Hide text labels in mini sidebar */
+}
+
+.sidebar.collapsed .sidebar-heading {
+  height: 10px; /* Reduce height but keep as divider */
+  overflow: hidden; /* Hide text */
+  padding: 0.5rem; /* Maintain some spacing */
+  margin: 0.5rem 0; /* Add some margin for visual separation */
+  opacity: 0.2; /* Less visible divider */
+}
+
+.sidebar .nav-link {
+  color: var(--text-color);
+  border-radius: 0.25rem;
+  margin: 0.25rem 0.75rem;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(123, 52, 210, 0.1);
+}
+.sidebar .nav-link.active {
+  background-color: var(--primary-accent);
+  color: white;
+}
+
+/* Special styling for active items in mini sidebar */
+.sidebar.collapsed .nav-link.active {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .nav-link.active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: white;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+.sidebar .nav-link i,
+.sidebar .nav-link svg {
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+} 
+
+/* Spacer element that pushes content below navbar */
+.sidebar-spacer {
+  height: var(--navbar-height);
+  min-height: var(--navbar-height);
+  width: 100%;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+/* Add a mini branding in collapsed state */
+.sidebar.collapsed .sidebar-spacer::after {
+  content: "D"; /* D for Do-It */
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: var(--primary-accent);
+  opacity: 0;
+  animation: fadeIn 0.5s forwards;
+  animation-delay: 0.2s;
+  height: 40px;
+  width: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Style for the scrollable sidebar content */
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto; /* Make just the content area scrollable */
+  padding-bottom: 20px; /* Add some padding at the bottom for better UX */
+}
+
+.sidebar-heading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  padding: 1rem 1.5rem 0.5rem;
+  color: var(--text-color);
+  opacity: 0.7;
+} 
+
+/* Main content wrapper */
+.main-content {
+  transition: margin-left 0.3s;
+  margin-left: 250px; /* Full sidebar width */
+  padding-top: var(--navbar-height); /* Use the navbar height variable */
+  position: relative;
+}
+
+/* Adjusted margin when sidebar is collapsed (mini sidebar mode) */
+.sidebar.collapsed + .main-content {
+  margin-left: 70px; /* Match the mini sidebar width */
+}
+
+.main-content.expanded {
+  margin-left: 0; /* For mobile view - fully collapsed */
+}
+
+/* Floating action button */
+.fab-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-accent);
+  color: white;
+  box-shadow: 0 4px 10px rgba(123, 52, 210, 0.5);
+  z-index: 1020;
+  transition: all 0.3s;
+}
+
+.fab-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(123, 52, 210, 0.6);
+  color: white;
+}
+
+.fab-button i {
+  font-size: 1.5rem;
+} 
+
+/* Top navbar */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1040; /* Increased to be higher than sidebar */
+  padding: 0.5rem 1rem;
+}
+
+.navbar-brand {
+  margin-right: 0;
+  color: var(--primary-accent) !important;
+}
+
+.search-input-container {
+  max-width: 500px;
+  width: 100%;
+}
+
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+} /* Responsive adjustments */
+@media (max-width: 992px) {
+  .sidebar {
+    margin-left: -70px; /* Hide mini sidebar on mobile by default */
+    z-index: 1035; /* Higher than normal sidebar but still below navbar */
+    width: 250px; /* Always show full sidebar on mobile when visible */
+  }
+
+  /* Use full width sidebar on mobile when shown */
+  .sidebar.collapsed {
+    width: 250px;
+  }
+
+  /* Show text in sidebar on mobile even when collapsed class is present */
+  .sidebar.collapsed .nav-link {
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0.75rem;
+    width: auto;
+    height: auto;
+  }
+
+  .sidebar.collapsed .nav-link i,
+  .sidebar.collapsed .nav-link svg {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
+  }
+
+  .sidebar.collapsed .nav-link span {
+    display: inline; /* Show text on mobile */
+  }
+
+  .sidebar.collapsed .sidebar-heading {
+    height: auto;
+    overflow: visible;
+    padding: 1rem 1.5rem 0.5rem;
+    margin: 0;
+    opacity: 0.7;
+  }
+
+  /* Adjust the spacer height based on mobile navbar height */
+  .sidebar-spacer {
+    height: var(--navbar-height-mobile);
+    min-height: var(--navbar-height-mobile);
+  }
+
+  .sidebar.show {
+    margin-left: 0;
+    box-shadow: 0 0 15px var(--shadow-color); /* Enhanced shadow when shown */
+  }
+
+  /* Always collapse sidebar fully on mobile */
+  .sidebar.collapsed + .main-content {
+    margin-left: 0;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  /* Removed redundant navbar-toggler - already handled by Bootstrap */
+
+  /* Add a backdrop when sidebar is shown on mobile */
+  body.sidebar-active::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1025; /* Below sidebar but above other content */
+    display: block;
+  }
+}
+@media (max-width: 768px) {
+  .search-input-container {
+    max-width: 100%;
+  }
+
+  /* Improve mobile layout for search and filter */
+  .search-and-filter .col-12 {
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Add priority badge styles */
+.priority-high {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.priority-medium {
+    background-color: #fd7e14 !important;
+    color: white !important;
+}
+
+.priority-low {
+    background-color: #198754 !important;
+    color: white !important;
+}
+
+/* Action icon styles */
+.action-icon {
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.action-icon:hover {
+    opacity: 0.7;
+}
+
+/* Card hover effect */
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    transition: all 0.2s ease;
+}
+
+/* Completed task styling */
+.task-card.completed {
+    opacity: 0.7;
+}
+
+.task-card.completed .card-title {
+    text-decoration: line-through;
+}
+
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand navbar-light py-2">
+        <div class="container-fluid">
+            <!-- Sidebar Toggle -->
+            <button class="btn btn-link text-decoration-none" id="sidebarToggle" type="button">
+                <i class="bi bi-list fs-4 text-primary-accent"></i>
+            </button>            
+            <!-- Logo -->
+            <a class="navbar-brand fw-bold fs-4 d-none d-md-block" href="#">
+                <i class="bi bi-check2-square me-2"></i>Do-It
+            </a>
+            
+            <!-- Right Side Menu -->
+            <div class="d-flex align-items-center ms-auto">
+                <!-- Dark Mode Toggle -->
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="darkModeSwitch">
+                    <label class="form-check-label" for="darkModeSwitch">
+                        <i class="bi bi-moon"></i>
+                    </label>
+                </div>
+                
+                <!-- User Profile Dropdown -->
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center text-reset dropdown-toggle hidden-arrow" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="https://ui-avatars.com/api/?name=User&background=7b34d2&color=fff" class="user-avatar" alt="User Avatar">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- Spacer div to push content below navbar -->
+        <div class="sidebar-spacer d-flex align-items-center justify-content-center">
+            <!-- Empty spacer that ensures fixed height regardless of content -->
+        </div>
+        
+        <!-- Sidebar content container -->
+        <div class="sidebar-content">
+            <div class="sidebar-heading">Tasks</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                <a class="nav-link active" href="dashboard.html" data-bs-toggle="tooltip" data-bs-placement="right" title="My Tasks">
+                    <i class="bi bi-list-check"></i>
+                    <span>My Tasks</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="archived-tasks.html" data-bs-toggle="tooltip" data-bs-placement="right" title="Archived Tasks">
+                    <i class="bi bi-archive"></i>
+                    <span>Archived Tasks</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="tasks-by-priority.html" data-bs-toggle="tooltip" data-bs-placement="right" title="Priority Tasks">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Priority Tasks</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="scheduled-tasks.html" data-bs-toggle="tooltip" data-bs-placement="right" title="Scheduled Tasks">
+                    <i class="bi bi-calendar-event"></i>
+                    <span>Scheduled Tasks</span>
+                </a>
+            </li>
+        </ul>
+        
+            <div class="sidebar-heading">Categories</div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                <a class="nav-link" href="tasks-by-labels.html" data-bs-toggle="tooltip" data-bs-placement="right" title="Labels">
+                    <i class="bi bi-tag"></i>
+                    <span>Labels</span>
+                </a>
+            </li>
+            </ul>
+        </div> <!-- Close sidebar-content -->
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="container-fluid py-4 px-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="mb-0">My Tasks</h1>
+                <span class="task-counter badge bg-secondary">0 tasks</span>
+            </div>        <!-- Search and Filter Row -->
+        <div class="row mb-4 align-items-center search-and-filter">
+            <!-- Search Bar -->
+            <div class="col-12 col-md-8 mb-3 mb-md-0">
+                <div class="input-group">
+                    <input type="text" class="form-control search-bar" placeholder="Search your tasks...">
+                    <button class="btn btn-primary-accent" type="button"><i class="bi bi-search"></i></button>
+                </div>
+            </div>
+            
+            <!-- Filter Dropdown -->
+            <div class="col-12 col-md-4 text-md-end">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-funnel me-2"></i>Filter Tasks
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                        <li><h6 class="dropdown-header">Sort By</h6></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="priority-desc">Priority (High to Low)</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="date-desc">Due Date (Newest to Oldest)</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Filter by Tags</h6></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Work">Work</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Personal">Personal</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Study">Study</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Health">Health</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task List / Card Layout -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="taskList">
+        </div>
+    </div>
+
+    <!-- Floating Action Button (FAB) for Adding Tasks -->
+    <a href="#" class="fab-button" data-bs-toggle="modal" data-bs-target="#addTaskModal" data-bs-toggle="tooltip" data-bs-placement="left" title="Add Task">
+        <i class="bi bi-plus-lg"></i>
+    </a>
+
+    <!-- Modals for Add/Edit Task (Placeholder) -->
+    <!-- Add Task Modal -->
+    <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTaskModalLabel">Add New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="taskForm">
+                        <div class="mb-3">
+                            <label for="taskTitle" class="form-label">Task Title *</label>
+                            <input type="text" class="form-control" id="taskTitle" name="title" placeholder="e.g., Finish report by Friday" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="taskDescription" name="description" rows="3" placeholder="Detailed description of the task..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="taskDueDate" class="form-label">Due Date *</label>
+                                    <input type="date" class="form-control" id="taskDueDate" name="dueDate" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="taskPriority" class="form-label">Priority</label>
+                                    <select class="form-select" id="taskPriority" name="priority">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskTags" class="form-label">Tags (comma-separated)</label>
+                            <input type="text" class="form-control" id="taskTags" name="tags" placeholder="e.g., Work, Urgent, Project A">
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskAttachment" class="form-label">Attachment</label>
+                            <input type="file" class="form-control" id="taskAttachment" name="attachment" multiple>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="taskForm" class="btn btn-primary-accent"><i class="bi bi-save me-2"></i>Save Task</button>
+                </div>
+            </div>
+        </div>
+    </div>    <!-- Edit Task Modal (reusing the same structure as Add Task for simplicity) -->
+    <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTaskModalLabel">Edit Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="editTaskTitle" class="form-label">Task Title</label>
+                            <input type="text" class="form-control" id="editTaskTitle" value="Project Report Submission">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editTaskDescription" rows="3">Finalize the quarterly project report and submit to supervisor.</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskDueDate" class="form-label">Due Date</label>
+                            <input type="date" class="form-control" id="editTaskDueDate" value="2025-07-01">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskPriority" class="form-label">Priority</label>
+                            <select class="form-select" id="editTaskPriority">
+                                <option value="High" selected>High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskTags" class="form-label">Tags (comma-separated)</label>
+                            <input type="text" class="form-control" id="editTaskTags" value="Work, Urgent">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskAttachment" class="form-label">Attachment</label>
+                            <input type="file" class="form-control" id="editTaskAttachment">
+                            <small class="text-muted">Current: report.pdf</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary-accent"><i class="bi bi-check-circle me-2"></i>Update Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Task Details Modal -->
+    <div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-labelledby="taskDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <!-- Modal Header with Task Title and Priority Badge -->
+                <div class="modal-header">
+                    <div class="d-flex align-items-center">
+                        <h5 class="modal-title me-2" id="taskDetailsTitle">Task Title</h5>
+                        <span class="badge priority-high" id="taskDetailsPriority">High Priority</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <!-- Modal Body with Task Details -->
+                <div class="modal-body">
+                    <!-- Description Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase small">Description</h6>
+                        <p id="taskDetailsDescription" class="mb-0">Task description will appear here.</p>
+                    </div>
+                    
+                    <!-- Due Date Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase small">Due Date</h6>
+                        <p id="taskDetailsDueDate" class="mb-0 d-flex align-items-center">
+                            <i class="bi bi-calendar-event me-2"></i>
+                            <span>Due date will appear here</span>
+                        </p>
+                    </div>
+                    
+                    <!-- Tags/Labels Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase small">Tags</h6>
+                        <div id="taskDetailsTags" class="d-flex flex-wrap gap-2">
+                            <!-- Tags will be inserted here dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Attachment Section -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold text-uppercase small">Attachments</h6>
+                        <div id="taskDetailsAttachments">
+                            <!-- Attachments will be inserted here dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- Status Information -->
+                    <div class="d-flex justify-content-between border-top pt-3">
+                        <div>
+                            <span class="text-muted small">Created: <span id="taskDetailsCreated">June 20, 2025</span></span>
+                        </div>
+                        <div id="taskDetailsArchived" class="d-none">
+                            <span class="badge bg-warning">Archived</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer with Action Buttons -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-info" id="editTaskBtn">
+                        <i class="bi bi-pencil me-1"></i> Edit
+                    </button>
+                    <button type="button" class="btn btn-warning" id="archiveTaskBtn">
+                        <i class="bi bi-archive me-1"></i> Archive
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Bootstrap JS CDN (bundle includes Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Dashboard Script -->
+    <script src="dashboard.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeSwitch = document.getElementById('darkModeSwitch');
+            const htmlElement = document.documentElement;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            // Initialize tooltips
+            function initTooltips() {
+                // Dispose existing tooltips first
+                const oldTooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                oldTooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                    const tooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                    if (tooltip) {
+                        tooltip.dispose();
+                    }
+                });
+                
+                // Initialize tooltips
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+            
+            // Initial tooltip setup
+            initTooltips();
+            
+            // Initialize task appearance based on archived status
+            function initializeTaskCards() {
+                document.querySelectorAll('.task-card').forEach(card => {
+                    if (card.dataset.archived === 'true') {
+                        // Make sure archived cards have the correct styling
+                        card.classList.add('bg-light');
+                        
+                        // Make sure the title has a checkmark if it doesn't already
+                        const cardTitle = card.querySelector('.card-title');
+                        if (cardTitle && !cardTitle.querySelector('.bi-check-circle')) {
+                            cardTitle.classList.add('text-muted');
+                            cardTitle.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${cardTitle.textContent.trim()}`;
+                        }
+                    }
+                });
+            }
+            
+            // Run initialization
+            initializeTaskCards();
+            
+            // Function to set theme
+            function setTheme(theme) {
+                htmlElement.setAttribute('data-bs-theme', theme);
+                localStorage.setItem('theme', theme);
+                darkModeSwitch.checked = (theme === 'dark');
+            }
+
+            // Check for saved theme preference or default to light
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                // Default to system preference if no saved theme
+                setTheme('dark');
+            } else {
+                setTheme('light');
+            }
+
+            // Toggle theme on switch change
+            darkModeSwitch.addEventListener('change', function() {
+                if (this.checked) {
+                    setTheme('dark');
+                } else {
+                    setTheme('light');
+                }
+            });              // Toggle sidebar between mini and full versions
+            function toggleSidebar() {
+                // Toggle classes
+                sidebar.classList.toggle('collapsed');
+                sidebar.classList.toggle('show');
+                
+                // On desktop: mini sidebar vs full sidebar
+                if (window.innerWidth >= 992) {
+                    if (sidebar.classList.contains('collapsed')) {
+                        localStorage.setItem('sidebarState', 'mini');
+                    } else {
+                        localStorage.setItem('sidebarState', 'full');
+                        mainContent.classList.remove('expanded');
+                    }
+                } 
+                // On mobile: fully hidden vs visible
+                else {
+                    mainContent.classList.toggle('expanded');
+                    document.body.classList.toggle('sidebar-active');
+                }
+                
+                // Reinitialize tooltips after sidebar state change
+                // Small delay to ensure DOM has updated
+                setTimeout(function() {
+                    initTooltips();
+                }, 300);
+            }
+            
+            // Handle sidebar toggle click
+            sidebarToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                toggleSidebar();
+            });
+            
+            // Handle window resize to properly manage sidebar states
+            function handleWindowResize() {
+                if (window.innerWidth < 992) {
+                    // Mobile view - fully collapse sidebar
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    document.body.classList.remove('sidebar-active'); // Reset backdrop
+                } else {
+                    // On desktop, we preserve the current state (mini or full)
+                    // If coming from mobile, default to full sidebar
+                    if (mainContent.classList.contains('expanded') && !localStorage.getItem('sidebarState')) {
+                        sidebar.classList.remove('collapsed');
+                        mainContent.classList.remove('expanded');
+                    } else if (localStorage.getItem('sidebarState') === 'mini') {
+                        sidebar.classList.add('collapsed');
+                    } else if (localStorage.getItem('sidebarState') === 'full') {
+                        sidebar.classList.remove('collapsed');
+                    }
+                }
+                
+                // Reinitialize tooltips after resize
+                initTooltips();
+            }            // Check for saved sidebar state preference
+            const savedSidebarState = localStorage.getItem('sidebarState');
+            if (savedSidebarState === 'mini' && window.innerWidth >= 992) {
+                sidebar.classList.add('collapsed');
+            } else if (savedSidebarState === 'full' && window.innerWidth >= 992) {
+                sidebar.classList.remove('collapsed');
+                mainContent.classList.remove('expanded');
+            }
+            
+            // Initial responsiveness check on page load
+            handleWindowResize();
+            
+            // Listen for window resize events
+            window.addEventListener('resize', handleWindowResize);
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth < 992 && 
+                    document.body.classList.contains('sidebar-active') && 
+                    !sidebar.contains(e.target) && 
+                    !sidebarToggle.contains(e.target)) {
+                    toggleSidebar();
+                }
+            });
+            
+            // Active nav links
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Remove active class from all links
+                    document.querySelectorAll('.sidebar .nav-link').forEach(l => {
+                        l.classList.remove('active');
+                    });
+                    // Add active class to clicked link
+                    this.classList.add('active');
+                    
+                    // On mobile, close sidebar after clicking a link
+                    if (window.innerWidth < 992) {
+                        toggleSidebar();
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
