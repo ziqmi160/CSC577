@@ -759,11 +759,37 @@
               <input
                 type="text"
                 class="form-control search-bar"
-                placeholder="Search labels..."
+                id="searchBar"
+                placeholder="Search within selected label..."
               />
               <button class="btn btn-primary-accent" type="button">
                 <i class="bi bi-search"></i>
               </button>
+            </div>
+
+            <!-- Search Options -->
+            <div class="d-flex align-items-center mt-2 mb-2">
+              <div class="form-check me-3">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="semanticSearchCheckbox"
+                  checked
+                />
+                <label class="form-check-label" for="semanticSearchCheckbox">
+                  <small>Semantic Search</small>
+                </label>
+              </div>
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="containsSearchCheckbox"
+                />
+                <label class="form-check-label" for="containsSearchCheckbox">
+                  <small>Contains Search</small>
+                </label>
+              </div>
             </div>
 
             <!-- All Labels / Current Filter information -->

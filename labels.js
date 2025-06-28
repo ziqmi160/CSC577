@@ -6,6 +6,7 @@ const API_BASE_URL = "http://localhost:5000";
 // --- Global Variables ---
 let allTasks = []; // Store all tasks for filtering
 let currentSelectedLabel = null; // Track currently selected label
+let currentSearchQuery = null; // Track current search query for semantic search
 let editItem = null; // Track task being edited
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
 
@@ -424,6 +425,10 @@ function createTaskCard(task) {
 function filterTasksByLabel(labelName) {
   console.log(`Filtering tasks by label: ${labelName}`);
 
+  // Clear any previous search query when switching labels
+  currentSearchQuery = null;
+  updateSearchUI();
+
   let filteredTasks;
 
   if (labelName.toLowerCase() === "unlabeled") {
@@ -445,29 +450,51 @@ function filterTasksByLabel(labelName) {
 
   console.log(`Found ${filteredTasks.length} tasks with label "${labelName}"`);
 
+  // Render the filtered tasks
+  renderTaskList(filteredTasks, labelName);
+}
+
+// --- Legacy Semantic Search Function (now calls performSearch) ---
+async function performSemanticSearch(query, labelName) {
+  console.log(
+    `Legacy performSemanticSearch called, redirecting to performSearch`
+  );
+  await performSearch(query, labelName, true, false);
+}
+
+// --- Render Task List (unified function for both filtering and search results) ---
+function renderTaskList(tasks, labelName, isSearchResult = false) {
   // Get the task list container
   const labelTasksList = document.getElementById("labelTasksList");
 
   // Clear previous tasks
   labelTasksList.innerHTML = "";
 
-  if (filteredTasks.length === 0) {
-    // Show empty state
-    const emptyMessage =
-      labelName.toLowerCase() === "unlabeled"
-        ? "No unlabeled tasks found"
-        : `No tasks with the "${labelName}" label`;
+  if (tasks.length === 0) {
+    // Show appropriate empty state message
+    let emptyMessage;
+    if (isSearchResult) {
+      emptyMessage = `No matching tasks found for "${currentSearchQuery}"`;
+    } else if (labelName.toLowerCase() === "unlabeled") {
+      emptyMessage = "No unlabeled tasks found";
+    } else {
+      emptyMessage = `No tasks with the "${labelName}" label`;
+    }
 
     labelTasksList.innerHTML = `
       <div class="col-12 text-center py-5">
         <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
         <h4 class="mt-3 text-muted">${emptyMessage}</h4>
-        <p class="text-muted">Add a task to see it here.</p>
+        <p class="text-muted">${
+          isSearchResult
+            ? "Try a different search term."
+            : "Add a task to see it here."
+        }</p>
       </div>
     `;
   } else {
     // Create and display task cards
-    filteredTasks.forEach((task) => {
+    tasks.forEach((task) => {
       const taskCard = createTaskCard(task);
       labelTasksList.appendChild(taskCard);
     });
@@ -482,8 +509,194 @@ function filterTasksByLabel(labelName) {
   }
 
   if (selectedLabelName) {
-    selectedLabelName.textContent =
+    const displayName =
       labelName.toLowerCase() === "unlabeled" ? "Unlabeled" : labelName;
+    selectedLabelName.textContent = isSearchResult
+      ? `"${currentSearchQuery}" in ${displayName}`
+      : displayName;
+  }
+}
+
+// --- Update Search UI State ---
+function updateSearchUI() {
+  const searchBar = document.querySelector("#searchBar, .search-bar");
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
+
+  if (searchBar) {
+    // Update placeholder based on selected label and search options
+    if (currentSelectedLabel) {
+      const labelDisplay =
+        currentSelectedLabel === "unlabeled"
+          ? "Unlabeled"
+          : currentSelectedLabel;
+
+      // Get current search options
+      const useSemantic =
+        document.getElementById("semanticSearchCheckbox")?.checked || false;
+      const useContains =
+        document.getElementById("containsSearchCheckbox")?.checked || false;
+
+      let searchType = "";
+      if (useSemantic && useContains) {
+        searchType = "semantic & text ";
+      } else if (useSemantic) {
+        searchType = "semantic ";
+      } else if (useContains) {
+        searchType = "text ";
+      } else {
+        searchType = ""; // Default behavior
+      }
+
+      searchBar.placeholder = `${searchType}Search within ${labelDisplay} tasks...`;
+
+      // Clear search input if no active search
+      if (!currentSearchQuery) {
+        searchBar.value = "";
+      }
+    } else {
+      searchBar.placeholder = "Select a label first to enable search";
+      searchBar.value = "";
+    }
+  }
+
+  // Show/hide clear search button
+  if (clearSearchBtn) {
+    if (currentSearchQuery && currentSelectedLabel) {
+      clearSearchBtn.classList.remove("d-none");
+    } else {
+      clearSearchBtn.classList.add("d-none");
+    }
+  }
+}
+
+// --- Clear Semantic Search ---
+function clearSemanticSearch() {
+  console.log("Clearing semantic search, returning to label view");
+
+  // Reset search state
+  currentSearchQuery = null;
+  updateSearchUI();
+
+  // Return to showing all tasks for the current label
+  if (currentSelectedLabel) {
+    filterTasksByLabel(currentSelectedLabel);
+  }
+}
+
+// --- Handle Search Bar Input ---
+function handleSearchInput(event) {
+  // Only process search if a label is currently selected
+  if (!currentSelectedLabel) {
+    console.log("No label selected, search disabled");
+    return;
+  }
+
+  // Check if Enter key was pressed or search button clicked
+  if (event.key === "Enter" || event.type === "click") {
+    const query =
+      event.target.type === "text"
+        ? event.target.value.trim()
+        : event.target
+            .closest(".input-group")
+            .querySelector("input")
+            .value.trim();
+
+    if (query.length === 0) {
+      // Empty query - return to label view
+      clearSemanticSearch();
+      return;
+    }
+
+    if (query.length < 2) {
+      displayErrorMessage("Please enter at least 2 characters for search");
+      return;
+    }
+
+    // Get search type preferences
+    const useSemantic =
+      document.getElementById("semanticSearchCheckbox")?.checked || false;
+    const useContains =
+      document.getElementById("containsSearchCheckbox")?.checked || false;
+
+    // Perform search based on selected options
+    performSearch(query, currentSelectedLabel, useSemantic, useContains);
+  }
+}
+
+// --- Enhanced Search Function (supports both semantic and contains search) ---
+async function performSearch(
+  query,
+  labelName,
+  useSemantic = true,
+  useContains = false
+) {
+  console.log(
+    `Performing search for "${query}" within label "${labelName}" - Semantic: ${useSemantic}, Contains: ${useContains}`
+  );
+
+  try {
+    let searchUrl = "/tasks";
+    const params = [];
+
+    // Add search parameters based on selected options
+    if (useSemantic) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+    if (useContains) {
+      params.push(`contains=${encodeURIComponent(query)}`);
+    }
+
+    // If neither option is selected, default to semantic search
+    if (!useSemantic && !useContains) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+
+    if (params.length > 0) {
+      searchUrl += `?${params.join("&")}`;
+    }
+
+    console.log("Search URL:", searchUrl);
+
+    // Send GET request to the backend
+    const allResults = await apiFetch(searchUrl);
+
+    console.log(`Search returned ${allResults.length} total results`);
+
+    // Filter results by the selected label (since backend doesn't support label filtering in search)
+    let filteredResults;
+    if (labelName === "unlabeled") {
+      // Filter for tasks that have no labels or empty label array
+      filteredResults = allResults.filter((task) => {
+        return (
+          !task.label || !Array.isArray(task.label) || task.label.length === 0
+        );
+      });
+    } else {
+      // Filter for tasks that have the selected label
+      filteredResults = allResults.filter((task) => {
+        if (!task.label || !Array.isArray(task.label)) return false;
+        return task.label.some(
+          (label) => label.toLowerCase() === labelName.toLowerCase()
+        );
+      });
+    }
+
+    console.log(
+      `Filtered to ${filteredResults.length} results for label "${labelName}"`
+    );
+
+    // Store the current search query for UI state
+    currentSearchQuery = query;
+    updateSearchUI();
+
+    // Render the search results
+    renderTaskList(filteredResults, labelName, true);
+  } catch (error) {
+    console.error("Search failed:", error);
+    displayErrorMessage("Search failed. Please try again.");
+
+    // Fall back to showing all tasks for the label
+    filterTasksByLabel(labelName);
   }
 }
 
@@ -502,8 +715,9 @@ function handleLabelChipClick(labelName) {
     selectedChip.classList.add("active");
   }
 
-  // Update current selection
+  // Update current selection and clear any previous search
   currentSelectedLabel = labelName;
+  currentSearchQuery = null;
 
   // Update UI elements
   const selectedLabelInfo = document.getElementById("selectedLabelInfo");
@@ -517,7 +731,10 @@ function handleLabelChipClick(labelName) {
     clearSelectionBtn.classList.remove("d-none");
   }
 
-  // Filter and display tasks
+  // Update search UI for the new label context
+  updateSearchUI();
+
+  // Filter and display tasks for the selected label
   filterTasksByLabel(labelName);
 }
 
@@ -530,8 +747,9 @@ function clearSelection() {
     chip.classList.remove("active");
   });
 
-  // Reset current selection
+  // Reset current selection and search state
   currentSelectedLabel = null;
+  currentSearchQuery = null;
 
   // Update UI elements
   const selectedLabelInfo = document.getElementById("selectedLabelInfo");
@@ -549,6 +767,9 @@ function clearSelection() {
   if (labelTasksSection) {
     labelTasksSection.classList.add("d-none");
   }
+
+  // Reset search UI
+  updateSearchUI();
 }
 
 // --- View Task Details (matching priority page structure) ---
@@ -836,6 +1057,86 @@ document.addEventListener("DOMContentLoaded", async function () {
   const clearSelectionBtn = document.getElementById("clearSelectionBtn");
   if (clearSelectionBtn) {
     clearSelectionBtn.addEventListener("click", clearSelection);
+  }
+
+  // Set up semantic search functionality
+  const searchBar = document.querySelector("#searchBar, .search-bar");
+  const searchButton = document.querySelector(
+    ".btn-primary-accent[type='button']"
+  );
+
+  if (searchBar) {
+    // Handle Enter key press for search
+    searchBar.addEventListener("keypress", handleSearchInput);
+
+    // Update placeholder initially
+    updateSearchUI();
+  }
+
+  if (searchButton) {
+    // Handle search button click
+    searchButton.addEventListener("click", handleSearchInput);
+  }
+
+  // Set up event listeners for search checkboxes (similar to index.js)
+  const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
+  const containsCheckbox = document.getElementById("containsSearchCheckbox");
+
+  if (semanticCheckbox) {
+    semanticCheckbox.addEventListener("change", function () {
+      // If current search exists, re-run it with new settings
+      if (currentSearchQuery && currentSelectedLabel) {
+        const useSemantic = semanticCheckbox.checked;
+        const useContains = containsCheckbox?.checked || false;
+        performSearch(
+          currentSearchQuery,
+          currentSelectedLabel,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
+
+  if (containsCheckbox) {
+    containsCheckbox.addEventListener("change", function () {
+      // If current search exists, re-run it with new settings
+      if (currentSearchQuery && currentSelectedLabel) {
+        const useSemantic = semanticCheckbox?.checked || false;
+        const useContains = containsCheckbox.checked;
+        performSearch(
+          currentSearchQuery,
+          currentSelectedLabel,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
+
+  // Add clear search button functionality (create if it doesn't exist)
+  let clearSearchBtn = document.getElementById("clearSearchBtn");
+  if (!clearSearchBtn && searchBar) {
+    // Create clear search button dynamically
+    clearSearchBtn = document.createElement("button");
+    clearSearchBtn.id = "clearSearchBtn";
+    clearSearchBtn.className = "btn btn-sm btn-outline-secondary d-none ms-2";
+    clearSearchBtn.innerHTML =
+      '<i class="bi bi-x-circle me-1"></i>Clear Search';
+    clearSearchBtn.title = "Clear search and return to label view";
+
+    // Insert after the search input group
+    const inputGroup = searchBar.closest(".input-group");
+    if (inputGroup && inputGroup.parentNode) {
+      inputGroup.parentNode.insertBefore(
+        clearSearchBtn,
+        inputGroup.nextSibling
+      );
+    }
+  }
+
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener("click", clearSemanticSearch);
   }
 
   // Set up edit task update button
