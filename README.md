@@ -5,12 +5,14 @@ A smart task management application with semantic search capabilities and a beau
 ## Application Flow
 
 ### New User Journey:
+
 1. **Landing Page** (`main.html`) - Welcome page with app introduction
 2. **Sign Up** (`signup.html`) - Create new account
 3. **Sign In** (`login.html`) - Login to existing account
 4. **Main App** (`index3.html`) - Task management interface
 
 ### Returning User Journey:
+
 1. **Landing Page** (`main.html`) - Automatically redirects to main app if already logged in
 2. **Main App** (`index3.html`) - Continue with task management
 
