@@ -405,6 +405,9 @@ function handleEditTask(card) {
     const tags = card.dataset.tags
       ? card.dataset.tags.split(",").filter((tag) => tag.trim())
       : [];
+    const attachments = card.dataset.attachment
+      ? card.dataset.attachment.split(",").filter((att) => att.trim())
+      : [];
 
     // Find form elements and populate them
     const titleInput = document.querySelector(
@@ -429,6 +432,13 @@ function handleEditTask(card) {
     if (prioritySelect) prioritySelect.value = taskPriority;
     if (tagsInput) tagsInput.value = tags.join(", ");
 
+    // Handle attachments
+    if (attachments.length > 0) {
+      setAttachmentDisplay(attachments, "attachmentContainer");
+    } else {
+      resetAttachments();
+    }
+
     // Store the card reference for later use
     editItem = card;
 
@@ -446,6 +456,12 @@ function handleEditTask(card) {
       submitBtn.innerHTML =
         '<i class="bi bi-check-circle me-2"></i>Update Task';
     }
+
+    // Set tags
+    setTags(tags);
+
+    // Populate existing tags dropdown
+    populateExistingTagsDropdown();
   }
 }
 
@@ -607,6 +623,7 @@ function initDashboard() {
   setupLogoutHandler();
   displayUserInfo();
   setupTaskForm();
+  setupAttachmentHandling();
 }
 
 // --- Setup Task Form ---
@@ -626,13 +643,7 @@ function setupTaskForm() {
       description: formData.get("description") || "",
       dueDate: formData.get("dueDate") || "",
       priority: formData.get("priority") || "Medium",
-      label: formData.get("tags")
-        ? formData
-            .get("tags")
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter((tag) => tag)
-        : [],
+      label: getTagArray(),
       completed: false,
     };
 
@@ -647,6 +658,23 @@ function setupTaskForm() {
     }
 
     try {
+      // Handle file uploads if there are attachments
+      const attachmentFiles = getAttachmentFiles();
+      let uploadedUrls = [];
+      if (attachmentFiles.length > 0) {
+        try {
+          uploadedUrls = await uploadFiles(attachmentFiles);
+        } catch (uploadError) {
+          console.error("File upload failed:", uploadError);
+          return; // Don't proceed if upload fails
+        }
+      }
+      // Merge old and new attachments
+      taskData.attachment = [
+        ...(editExistingAttachments || []),
+        ...(uploadedUrls || [])
+      ];
+
       if (editItem) {
         // Update existing task
         const taskId = editItem.dataset.taskId;
@@ -661,6 +689,7 @@ function setupTaskForm() {
       const modal = bootstrap.Modal.getInstance(addTaskModal);
       modal.hide();
       form.reset();
+      resetAttachments(); // Reset attachment state
     } catch (error) {
       console.error("Failed to save task:", error);
     }
@@ -670,6 +699,7 @@ function setupTaskForm() {
   addTaskModal.addEventListener("hidden.bs.modal", () => {
     form.reset();
     editItem = null;
+    resetAttachments(); // Reset attachment state
     const modalTitle = addTaskModal.querySelector(".modal-title");
     if (modalTitle) modalTitle.textContent = "Add New Task";
 
@@ -846,13 +876,60 @@ function populateTaskDetailsModal(taskData) {
       .split(",")
       .filter((att) => att.trim());
     attachments.forEach((attachment) => {
-      const attachmentItem = document.createElement("div");
-      attachmentItem.className = "d-flex align-items-center mb-2";
-      attachmentItem.innerHTML = `
-        <i class="bi bi-paperclip me-2 text-primary"></i>
-        <a href="#" class="text-decoration-none">${attachment.trim()}</a>
-      `;
-      attachmentsContainer.appendChild(attachmentItem);
+      const div = document.createElement('div');
+      div.className = 'attachment-item mb-2 p-2 border rounded';
+      div.style.backgroundColor = 'var(--background-color)';
+      
+      const fileIcon = document.createElement('i');
+      fileIcon.className = `bi ${getFileIcon(attachment.split('.').pop()?.toLowerCase())} me-2`;
+      fileIcon.style.color = 'var(--text-color)';
+      
+      const fileNameSpan = document.createElement('span');
+      fileNameSpan.className = 'attachment-filename';
+      fileNameSpan.textContent = attachment.split('/').pop();
+      
+      const viewableExtensions = [
+        'pdf', 'txt', 'html', 'htm', 'css', 'js', 'json', 'xml', 'csv', 'md',
+        'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico',
+        'mp3', 'wav', 'ogg', 'mp4', 'webm',
+        'py', 'java', 'cpp', 'c', 'php', 'rb', 'go', 'rs', 'swift', 'kt',
+        'yaml', 'yml', 'toml', 'ini', 'conf', 'log',
+        'woff', 'woff2', 'ttf', 'eot'
+      ];
+      const fileExtension = attachment.split('.').pop()?.toLowerCase();
+      const canView = viewableExtensions.includes(fileExtension);
+      const fullUrl = attachment.startsWith('/uploads/') ? `${API_BASE_URL}${attachment}` : attachment;
+
+      let viewBtn = null;
+      if (canView) {
+        viewBtn = document.createElement('a');
+        viewBtn.href = '#';
+        viewBtn.className = 'btn btn-sm btn-primary me-2';
+        viewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>View';
+        viewBtn.title = getFileTypeInfo(fileExtension);
+        viewBtn.onclick = (e) => {
+          e.preventDefault();
+          if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(fileExtension)) {
+            showImagePreview(fullUrl, fileNameSpan.textContent);
+          } else if (['mp3', 'wav', 'ogg', 'mp4', 'webm'].includes(fileExtension)) {
+            showMediaPreview(fullUrl, fileNameSpan.textContent, fileExtension);
+          } else {
+            window.open(fullUrl, '_blank');
+          }
+        };
+      }
+      const downloadBtn = document.createElement('a');
+      downloadBtn.href = fullUrl;
+      downloadBtn.download = fileNameSpan.textContent;
+      downloadBtn.className = 'btn btn-sm btn-outline-secondary me-2';
+      downloadBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
+      downloadBtn.title = `Download ${fileNameSpan.textContent} (${getFileTypeInfo(fileExtension)})`;
+
+      div.appendChild(fileIcon);
+      div.appendChild(fileNameSpan);
+      if (viewBtn) div.appendChild(viewBtn);
+      div.appendChild(downloadBtn);
+      attachmentsContainer.appendChild(div);
     });
   } else {
     attachmentsContainer.innerHTML =
@@ -966,4 +1043,490 @@ window.dashboardAPI = {
   updateTask: updateTask,
   displaySuccessMessage: displaySuccessMessage,
   displayErrorMessage: displayErrorMessage,
+};
+
+// --- Attachment Functionality ---
+// Global variables for attachment handling
+let selectedFiles = [];
+let editExistingAttachments = [];
+
+// Setup attachment functionality
+function setupAttachmentHandling() {
+  const fileInput = document.getElementById("taskAttachment");
+  const attachmentContainer = document.getElementById("attachmentContainer");
+  const editFileInput = document.getElementById("editTaskAttachment");
+  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
+
+  if (fileInput && attachmentContainer) {
+    fileInput.addEventListener('change', function() {
+      selectedFiles = Array.from(fileInput.files);
+      renderAttachmentList(attachmentContainer, selectedFiles, editExistingAttachments);
+    });
+  }
+
+  if (editFileInput && editAttachmentContainer) {
+    editFileInput.addEventListener('change', function() {
+      selectedFiles = Array.from(editFileInput.files);
+      renderAttachmentList(editAttachmentContainer, selectedFiles, editExistingAttachments);
+    });
+  }
+}
+
+// Get file type information
+function getFileTypeInfo(fileExtension) {
+  const fileTypeInfo = {
+    // Viewable files
+    'pdf': 'PDF Document - Viewable in browser',
+    'txt': 'Text File - Viewable in browser',
+    'html': 'HTML File - Viewable in browser',
+    'css': 'CSS File - Viewable in browser',
+    'js': 'JavaScript File - Viewable in browser',
+    'json': 'JSON Data - Viewable in browser',
+    'xml': 'XML Data - Viewable in browser',
+    'csv': 'CSV Data - Viewable in browser',
+    'md': 'Markdown File - Viewable in browser',
+    
+    // Images
+    'jpg': 'JPEG Image - Viewable in browser',
+    'jpeg': 'JPEG Image - Viewable in browser',
+    'png': 'PNG Image - Viewable in browser',
+    'gif': 'GIF Image - Viewable in browser',
+    'svg': 'SVG Image - Viewable in browser',
+    'webp': 'WebP Image - Viewable in browser',
+    'bmp': 'BMP Image - Viewable in browser',
+    'ico': 'Icon File - Viewable in browser',
+    
+    // Media files
+    'mp3': 'Audio File - Playable in browser',
+    'wav': 'Audio File - Playable in browser',
+    'ogg': 'Audio/Video File - Playable in browser',
+    'mp4': 'Video File - Playable in browser',
+    'webm': 'Video File - Playable in browser',
+    
+    // Code files
+    'py': 'Python Code - Viewable in browser',
+    'java': 'Java Code - Viewable in browser',
+    'cpp': 'C++ Code - Viewable in browser',
+    'c': 'C Code - Viewable in browser',
+    'php': 'PHP Code - Viewable in browser',
+    'rb': 'Ruby Code - Viewable in browser',
+    'go': 'Go Code - Viewable in browser',
+    'rs': 'Rust Code - Viewable in browser',
+    'swift': 'Swift Code - Viewable in browser',
+    'kt': 'Kotlin Code - Viewable in browser',
+    
+    // Data files
+    'yaml': 'YAML Data - Viewable in browser',
+    'yml': 'YAML Data - Viewable in browser',
+    'toml': 'TOML Data - Viewable in browser',
+    'ini': 'INI Config - Viewable in browser',
+    'conf': 'Config File - Viewable in browser',
+    'log': 'Log File - Viewable in browser',
+    
+    // Non-viewable files
+    'doc': 'Word Document - Requires Microsoft Word or similar',
+    'docx': 'Word Document - Requires Microsoft Word or similar',
+    'xls': 'Excel Spreadsheet - Requires Microsoft Excel or similar',
+    'xlsx': 'Excel Spreadsheet - Requires Microsoft Excel or similar',
+    'ppt': 'PowerPoint Presentation - Requires Microsoft PowerPoint or similar',
+    'pptx': 'PowerPoint Presentation - Requires Microsoft PowerPoint or similar',
+    'zip': 'Archive File - Requires extraction software',
+    'rar': 'Archive File - Requires extraction software',
+    'exe': 'Executable File - Cannot be viewed in browser for security',
+    'app': 'Application File - Cannot be viewed in browser for security'
+  };
+  
+  return fileTypeInfo[fileExtension] || `Unknown file type (.${fileExtension}) - May not be viewable`;
+}
+
+// Get file type icon based on extension
+function getFileIcon(fileExtension) {
+  const iconMap = {
+    'pdf': 'bi-file-earmark-pdf',
+    'doc': 'bi-file-earmark-word',
+    'docx': 'bi-file-earmark-word',
+    'xls': 'bi-file-earmark-excel',
+    'xlsx': 'bi-file-earmark-excel',
+    'ppt': 'bi-file-earmark-ppt',
+    'pptx': 'bi-file-earmark-ppt',
+    'txt': 'bi-file-earmark-text',
+    'jpg': 'bi-file-earmark-image',
+    'jpeg': 'bi-file-earmark-image',
+    'png': 'bi-file-earmark-image',
+    'gif': 'bi-file-earmark-image',
+    'svg': 'bi-file-earmark-image',
+    'mp4': 'bi-file-earmark-play',
+    'avi': 'bi-file-earmark-play',
+    'mov': 'bi-file-earmark-play',
+    'mp3': 'bi-file-earmark-music',
+    'wav': 'bi-file-earmark-music',
+    'zip': 'bi-file-earmark-zip',
+    'rar': 'bi-file-earmark-zip',
+    'html': 'bi-file-earmark-code',
+    'htm': 'bi-file-earmark-code',
+    'css': 'bi-file-earmark-code',
+    'js': 'bi-file-earmark-code',
+    'json': 'bi-file-earmark-code',
+    'xml': 'bi-file-earmark-code',
+    'csv': 'bi-file-earmark-spreadsheet'
+  };
+  
+  return iconMap[fileExtension] || 'bi-file-earmark';
+}
+
+// Render attachment list with delete functionality
+function renderAttachmentList(container, files, existingAttachments = []) {
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  // Show existing attachments (when editing)
+  existingAttachments.forEach((url, idx) => {
+    const div = document.createElement('div');
+    div.className = 'attachment-item mb-2 p-2 border rounded';
+    div.style.backgroundColor = 'var(--background-color)';
+    
+    const fileIcon = document.createElement('i');
+    fileIcon.className = `bi ${getFileIcon(url.split('.').pop()?.toLowerCase())} me-2`;
+    fileIcon.style.color = 'var(--text-color)';
+    
+    const fileNameSpan = document.createElement('span');
+    fileNameSpan.className = 'attachment-filename';
+    fileNameSpan.textContent = url.split('/').pop();
+    
+    const viewableExtensions = [
+      'pdf', 'txt', 'html', 'htm', 'css', 'js', 'json', 'xml', 'csv', 'md',
+      'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico',
+      'mp3', 'wav', 'ogg', 'mp4', 'webm',
+      'py', 'java', 'cpp', 'c', 'php', 'rb', 'go', 'rs', 'swift', 'kt',
+      'yaml', 'yml', 'toml', 'ini', 'conf', 'log',
+      'woff', 'woff2', 'ttf', 'eot'
+    ];
+    const fileExtension = url.split('.').pop()?.toLowerCase();
+    const canView = viewableExtensions.includes(fileExtension);
+    const fullUrl = url.startsWith('/uploads/') ? `${API_BASE_URL}${url}` : url;
+
+    let viewBtn = null;
+    if (canView) {
+      viewBtn = document.createElement('a');
+      viewBtn.href = '#';
+      viewBtn.className = 'btn btn-sm btn-primary me-2';
+      viewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>View';
+      viewBtn.title = getFileTypeInfo(fileExtension);
+      viewBtn.onclick = (e) => {
+        e.preventDefault();
+        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(fileExtension)) {
+          showImagePreview(fullUrl, fileNameSpan.textContent);
+        } else if (['mp3', 'wav', 'ogg', 'mp4', 'webm'].includes(fileExtension)) {
+          showMediaPreview(fullUrl, fileNameSpan.textContent, fileExtension);
+        } else {
+          window.open(fullUrl, '_blank');
+        }
+      };
+    }
+    const downloadBtn = document.createElement('a');
+    downloadBtn.href = fullUrl;
+    downloadBtn.download = fileNameSpan.textContent;
+    downloadBtn.className = 'btn btn-sm btn-outline-secondary me-2';
+    downloadBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
+    downloadBtn.title = `Download ${fileNameSpan.textContent} (${getFileTypeInfo(fileExtension)})`;
+
+    // Remove button for old attachments
+    const removeBtn = document.createElement('button');
+    removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
+    removeBtn.className = 'btn btn-sm btn-outline-danger ms-auto';
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      existingAttachments.splice(idx, 1);
+      renderAttachmentList(container, files, existingAttachments);
+    };
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    if (viewBtn) div.appendChild(viewBtn);
+    div.appendChild(downloadBtn);
+    div.appendChild(removeBtn);
+    container.appendChild(div);
+  });
+  
+  // Show new attachments (not yet uploaded)
+  files.forEach((file, idx) => {
+    const div = document.createElement('div');
+    div.className = 'attachment-item mb-2 p-2 border rounded';
+    div.style.backgroundColor = 'var(--background-color)';
+    
+    const fileIcon = document.createElement('i');
+    fileIcon.className = `bi ${getFileIcon(file.name.split('.').pop()?.toLowerCase())} me-2`;
+    fileIcon.style.color = 'var(--text-color)';
+    
+    const fileNameSpan = document.createElement('span');
+    fileNameSpan.className = 'attachment-filename';
+    fileNameSpan.textContent = file.name;
+    
+    const fileSize = document.createElement('small');
+    fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    fileSize.className = 'text-muted me-2';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
+    removeBtn.className = 'btn btn-sm btn-outline-danger ms-auto';
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      files.splice(idx, 1);
+      renderAttachmentList(container, files, existingAttachments);
+      
+      // Clear file input if no files left
+      const fileInput = document.getElementById("taskAttachment") || document.getElementById("editTaskAttachment");
+      if (fileInput && files.length === 0) {
+        fileInput.value = '';
+      }
+    };
+    
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(fileSize);
+    div.appendChild(removeBtn);
+    container.appendChild(div);
+  });
+}
+
+// Get attachment files for form submission
+function getAttachmentFiles() {
+  return selectedFiles;
+}
+
+// Set attachment display for editing
+function setAttachmentDisplay(urls, containerId = "attachmentContainer") {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  editExistingAttachments = Array.isArray(urls) ? [...urls] : [];
+  selectedFiles = [];
+  renderAttachmentList(container, selectedFiles, editExistingAttachments);
+}
+
+// Upload files to server
+async function uploadFiles(files) {
+  if (!files.length) return [];
+  
+  try {
+    console.log('Starting file upload for', files.length, 'files');
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+      console.log('Added file to FormData:', file.name, file.size);
+    });
+    
+    const token = localStorage.getItem("token");
+    console.log('Token available:', !!token);
+    
+    const uploadResponse = await fetch(`${API_BASE_URL}/upload`, { 
+      method: 'POST', 
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    console.log('Upload response status:', uploadResponse.status);
+    
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('Upload error response:', errorText);
+      throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+    
+    const data = await uploadResponse.json();
+    console.log('Upload success, files:', data.files);
+    return data.files; // Array of URLs
+  } catch (error) {
+    console.error('File upload error:', error);
+    displayErrorMessage(`Failed to upload files: ${error.message}`);
+    throw error;
+  }
+}
+
+// Reset attachment state
+function resetAttachments() {
+  selectedFiles = [];
+  editExistingAttachments = [];
+  
+  const attachmentContainer = document.getElementById("attachmentContainer");
+  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
+  
+  if (attachmentContainer) attachmentContainer.innerHTML = '';
+  if (editAttachmentContainer) editAttachmentContainer.innerHTML = '';
+  
+  const fileInput = document.getElementById("taskAttachment");
+  const editFileInput = document.getElementById("editTaskAttachment");
+  
+  if (fileInput) fileInput.value = '';
+  if (editFileInput) editFileInput.value = '';
+}
+
+// Show image preview in modal
+function showImagePreview(imageUrl, fileName) {
+  const previewImage = document.getElementById('previewImage');
+  const downloadImageBtn = document.getElementById('downloadImageBtn');
+  const modalTitle = document.getElementById('imagePreviewModalLabel');
+  
+  if (previewImage && downloadImageBtn && modalTitle) {
+    previewImage.src = imageUrl;
+    downloadImageBtn.href = imageUrl;
+    downloadImageBtn.download = fileName;
+    modalTitle.textContent = `Image Preview: ${fileName}`;
+    
+    const imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    imagePreviewModal.show();
+  }
+}
+
+// Show media preview in modal
+function showMediaPreview(mediaUrl, fileName, fileExtension) {
+  const modalTitle = document.getElementById('imagePreviewModalLabel');
+  const modalBody = document.querySelector('#imagePreviewModal .modal-body');
+  const downloadBtn = document.getElementById('downloadImageBtn');
+  
+  if (modalTitle && modalBody && downloadBtn) {
+    modalTitle.textContent = `Media Preview: ${fileName}`;
+    downloadBtn.href = mediaUrl;
+    downloadBtn.download = fileName;
+    
+    // Clear previous content
+    modalBody.innerHTML = '';
+    
+    // Create media element based on file type
+    if (['mp3', 'wav', 'ogg'].includes(fileExtension)) {
+      // Audio player
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.style.width = '100%';
+      audio.style.maxWidth = '500px';
+      audio.src = mediaUrl;
+      modalBody.appendChild(audio);
+    } else if (['mp4', 'webm', 'ogg'].includes(fileExtension)) {
+      // Video player
+      const video = document.createElement('video');
+      video.controls = true;
+      video.style.width = '100%';
+      video.style.maxWidth = '800px';
+      video.style.maxHeight = '70vh';
+      video.src = mediaUrl;
+      modalBody.appendChild(video);
+    }
+    
+    const mediaPreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    mediaPreviewModal.show();
+  }
+}
+
+// --- Tag Chip Logic ---
+function addTag(tag) {
+  tag = tag.trim();
+  if (!tag) return;
+  // Prevent duplicate tags
+  if (getTagArray().includes(tag)) return;
+  const tagContainer = document.getElementById('tagContainer');
+  const chip = document.createElement('span');
+  chip.className = 'tag-chip badge bg-info text-dark me-1 mb-1';
+  chip.textContent = tag;
+  // Remove button
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn btn-sm btn-link p-0 m-0 ms-1';
+  removeBtn.innerHTML = '&times;';
+  removeBtn.onclick = () => chip.remove();
+  chip.appendChild(removeBtn);
+  tagContainer.appendChild(chip);
+}
+function setTags(tags) {
+  const tagContainer = document.getElementById('tagContainer');
+  tagContainer.innerHTML = '';
+  (tags || []).forEach(tag => addTag(tag));
+}
+function getTagArray() {
+  const tagContainer = document.getElementById('tagContainer');
+  return Array.from(tagContainer.querySelectorAll('.tag-chip')).map(chip => chip.childNodes[0].textContent.trim());
+}
+// Add Tag button logic
+const tagInput = document.getElementById('tagInput');
+const addTagBtn = document.getElementById('addTagBtn');
+if (addTagBtn && tagInput) {
+  addTagBtn.onclick = function() {
+    const tags = tagInput.value.split(',').map(t => t.trim()).filter(Boolean);
+    tags.forEach(addTag);
+    tagInput.value = '';
+  };
+  tagInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTagBtn.onclick();
+    }
+  });
+}
+
+function showAddTaskModal() {
+  setTags([]); // Clear tag chips
+  if (tagInput) tagInput.value = '';
+  const addTaskModal = new bootstrap.Modal(document.getElementById('addTaskModal'));
+  addTaskModal.show();
+}
+
+// At the end of the file or after DOMContentLoaded:
+const showAddFormBtn = document.getElementById('showAddFormBtn');
+if (showAddFormBtn) {
+  showAddFormBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    showAddTaskModal();
+  });
+}
+
+async function populateExistingTagsDropdown() {
+  const dropdown = document.getElementById('existingTagsDropdown');
+  if (!dropdown) return;
+  dropdown.innerHTML = '<option value="">Select existing tag</option>';
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const tasks = await response.json();
+    const tagSet = new Set();
+    tasks.forEach(task => {
+      if (Array.isArray(task.label)) {
+        task.label.forEach(l => tagSet.add(l));
+      }
+    });
+    Array.from(tagSet).sort().forEach(tag => {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      dropdown.appendChild(option);
+    });
+  } catch (err) {
+    // ignore
+  }
+}
+// Add event listener for dropdown
+const existingTagsDropdown = document.getElementById('existingTagsDropdown');
+if (existingTagsDropdown) {
+  existingTagsDropdown.addEventListener('change', function() {
+    const tag = this.value;
+    if (tag) {
+      addTag(tag);
+      this.value = '';
+    }
+  });
+}
+// Call populateExistingTagsDropdown when opening the modal
+const oldShowAddTaskModal = showAddTaskModal;
+showAddTaskModal = function() {
+  oldShowAddTaskModal();
+  populateExistingTagsDropdown();
+};
+// Also call in handleEditTask
+const oldHandleEditTask = handleEditTask;
+handleEditTask = function(card) {
+  oldHandleEditTask(card);
+  populateExistingTagsDropdown();
 };

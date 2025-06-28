@@ -508,6 +508,40 @@
     text-decoration: line-through;
 }
 
+/* Attachment button styling */
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.attachment-filename {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+/* File type icons */
+.file-icon {
+  font-size: 1.1rem;
+}
+
     </style>
 </head>
 <body>
@@ -641,7 +675,7 @@
     </div>
 
     <!-- Floating Action Button (FAB) for Adding Tasks -->
-    <a href="#" class="fab-button" data-bs-toggle="modal" data-bs-target="#addTaskModal" data-bs-toggle="tooltip" data-bs-placement="left" title="Add Task">
+    <a href="#" id="showAddFormBtn" class="fab-button" title="Add Task">
         <i class="bi bi-plus-lg"></i>
     </a>
 
@@ -683,12 +717,36 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="taskTags" class="form-label">Tags (comma-separated)</label>
-                            <input type="text" class="form-control" id="taskTags" name="tags" placeholder="e.g., Work, Urgent, Project A">
+                            <label for="taskTags" class="form-label">
+                                Tags
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </label>
+                            <div class="d-flex mb-2">
+                                <input type="text" id="tagInput" class="form-control inputcss" placeholder="Add tags (comma separated)..." />
+                                <button type="button" id="addTagBtn" class="btn btn-outline-primary ms-2">Add Tag</button>
+                            </div>
+                            <select id="existingTagsDropdown" class="form-select mb-2">
+                                <option value="">Select existing tag</option>
+                            </select>
+                            <div id="tagContainer" class="mt-2"></div>
                         </div>
                         <div class="mb-3">
-                            <label for="taskAttachment" class="form-label">Attachment</label>
-                            <input type="file" class="form-control" id="taskAttachment" name="attachment" multiple>
+                            <label for="taskAttachment" class="form-label">
+                                Attachments
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <label for="taskAttachment" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                </label>
+                                <input type="file" class="form-control" id="taskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
+                            </div>
+                            <div id="attachmentContainer" class="mt-2"></div>
+                            <small class="text-muted">You can select multiple files. Supported formats: All file types.</small>
                         </div>
                     </form>
                 </div>
@@ -739,9 +797,20 @@
                             <input type="text" class="form-control" id="editTaskTags" value="Work, Urgent">
                         </div>
                         <div class="mb-3">
-                            <label for="editTaskAttachment" class="form-label">Attachment</label>
-                            <input type="file" class="form-control" id="editTaskAttachment">
-                            <small class="text-muted">Current: report.pdf</small>
+                            <label for="editTaskAttachment" class="form-label">
+                                Attachments
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <label for="editTaskAttachment" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                </label>
+                                <input type="file" class="form-control" id="editTaskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
+                            </div>
+                            <div id="editAttachmentContainer" class="mt-2"></div>
+                            <small class="text-muted">You can select multiple files. Supported formats: All file types.</small>
                         </div>
                     </form>
                 </div>
@@ -824,6 +893,77 @@
         </div>
     </div>
 
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagePreviewModalLabel">Image Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="previewImage" src="" alt="Preview" class="img-fluid" style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a id="downloadImageBtn" href="" download class="btn btn-primary">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Viewing Help Modal -->
+    <div class="modal fade" id="fileViewingHelpModal" tabindex="-1" aria-labelledby="fileViewingHelpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileViewingHelpModalLabel">
+                        <i class="bi bi-question-circle me-2"></i>File Viewing Guide
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="bi bi-check-circle me-1"></i>Viewable Files</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>📄 Documents:</strong> PDF, TXT, HTML, CSS, JS, JSON, XML, CSV, MD</li>
+                                <li><strong>🖼️ Images:</strong> JPG, PNG, GIF, SVG, WebP, BMP, ICO</li>
+                                <li><strong>🎵 Audio:</strong> MP3, WAV, OGG</li>
+                                <li><strong>🎬 Video:</strong> MP4, WebM, OGG</li>
+                                <li><strong>💻 Code:</strong> Python, Java, C++, PHP, Ruby, Go, Rust, Swift, Kotlin</li>
+                                <li><strong>📊 Data:</strong> YAML, TOML, INI, CONF, LOG</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Download Only</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>📄 Office:</strong> DOC, DOCX, XLS, XLSX, PPT, PPTX</li>
+                                <li><strong>📦 Archives:</strong> ZIP, RAR, 7Z</li>
+                                <li><strong>💻 Executables:</strong> EXE, APP, MSI</li>
+                                <li><strong>🔧 Other:</strong> Database files, proprietary formats</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-1"></i>Why Can't All Files Be Viewed?</h6>
+                        <ul class="mb-0">
+                            <li><strong>Browser Limitations:</strong> Web browsers can only display certain file formats natively</li>
+                            <li><strong>Security Restrictions:</strong> Executable files are blocked for security reasons</li>
+                            <li><strong>Proprietary Formats:</strong> Some files require specific software (like Microsoft Office)</li>
+                            <li><strong>Binary Files:</strong> Many file types are not human-readable text</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap JS CDN (bundle includes Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

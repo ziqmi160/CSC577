@@ -183,6 +183,41 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// --- File Upload Configuration ---
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
+
+// File upload endpoint (protected by authentication)
+app.post('/upload', authMiddleware, upload.array('files', 10), (req, res) => {
+  try {
+    console.log('Upload request received');
+    console.log('Files:', req.files);
+    console.log('User:', req.user);
+    
+    if (!req.files || req.files.length === 0) {
+      console.log('No files uploaded');
+      return res.status(400).json({ message: 'No files uploaded' });
+    }
+    
+    const files = req.files.map(file => `/uploads/${file.filename}`);
+    console.log('Uploaded files:', files);
+    res.status(200).json({ files });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ message: 'Upload failed', error: error.message });
+  }
+});
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // --- Protect all task routes below ---
 app.use('/tasks', authMiddleware);
 
@@ -454,25 +489,6 @@ app.delete('/tasks', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, 'uploads'));
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-const upload = multer({ storage: storage });
-
-// File upload endpoint
-app.post('/upload', upload.array('files', 10), (req, res) => {
-  const files = req.files.map(file => `/uploads/${file.filename}`);
-  res.status(200).json({ files });
-});
-
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- Start the server ---
 app.listen(PORT, () => {
