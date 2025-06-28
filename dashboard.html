@@ -649,23 +649,22 @@
             </div>
             
             <!-- Filter Dropdown -->
-            <div class="col-12 col-md-4 text-md-end">
+            <div class="col-12 col-md-4 text-md-end d-flex justify-content-md-end align-items-center" style="gap: 0.5rem;">
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-funnel me-2"></i>Filter Tasks
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
                         <li><h6 class="dropdown-header">Sort By</h6></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="priority-desc">Priority (High to Low)</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="date-desc">Due Date (Newest to Oldest)</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">Filter by Tags</h6></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Work">Work</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Personal">Personal</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Study">Study</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Health">Health</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="priority-desc">High to Low Priority</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="priority-asc">Low to High Priority</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="date-asc">Early To Do</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="date-desc">Lately To Do</a></li>
                     </ul>
                 </div>
+                <button class="btn btn-outline-danger ms-2" id="clearFiltersBtn" type="button">
+                    <i class="bi bi-x-circle me-1"></i>Clear Filter
+                </button>
             </div>
         </div>
 

@@ -1530,3 +1530,137 @@ handleEditTask = function(card) {
   oldHandleEditTask(card);
   populateExistingTagsDropdown();
 };
+
+// --- 筛选/排序/标签过滤功能 ---
+document.addEventListener('DOMContentLoaded', function() {
+  // 监听筛选下拉菜单点击
+  const filterDropdown = document.getElementById('filterDropdown');
+  if (filterDropdown) {
+    const dropdownMenu = filterDropdown.nextElementSibling;
+    if (dropdownMenu) {
+      dropdownMenu.addEventListener('click', function(e) {
+        const item = e.target.closest('.dropdown-item');
+        if (!item) return;
+        const filterType = item.getAttribute('data-filter-type');
+        if (!filterType) return;
+        
+        if (filterType === 'priority-desc') {
+          filterTasksByPriority('desc');
+        } else if (filterType === 'priority-asc') {
+          filterTasksByPriority('asc');
+        } else if (filterType === 'date-desc') {
+          filterTasksByDueDate('desc');
+        } else if (filterType === 'date-asc') {
+          filterTasksByDueDate('asc');
+        } else if (filterType === 'clear-filters') {
+          clearAllFilters();
+        }
+      });
+    }
+  }
+  
+  // Add event listener for Clear Filter button
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', clearAllFilters);
+  }
+  
+  // 为任务卡片上的标签添加点击事件
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('badge') && e.target.closest('.task-card')) {
+      const tag = e.target.textContent.trim();
+      if (tag) {
+        filterTasksByTag(tag);
+        // 更新筛选按钮文本
+        const filterBtn = document.getElementById('filterDropdown');
+        if (filterBtn) {
+          filterBtn.innerHTML = `<i class="bi bi-funnel me-2"></i>Filter: ${tag}`;
+        }
+      }
+    }
+  });
+});
+
+// 按优先级排序
+function filterTasksByPriority(order = 'desc') {
+  const taskList = document.getElementById('taskList');
+  const cards = Array.from(taskList.querySelectorAll('.task-card'));
+  cards.sort((a, b) => {
+    const pA = a.dataset.priority || 'Low';
+    const pB = b.dataset.priority || 'Low';
+    const priorityMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
+    return order === 'desc' ? priorityMap[pB] - priorityMap[pA] : priorityMap[pA] - priorityMap[pB];
+  });
+  cards.forEach(card => taskList.appendChild(card.parentElement)); // .parentElement 是 .col
+}
+
+// 按截止日期排序
+function filterTasksByDueDate(order = 'desc') {
+  const taskList = document.getElementById('taskList');
+  const cards = Array.from(taskList.querySelectorAll('.task-card'));
+  cards.sort((a, b) => {
+    const dA = new Date(a.dataset.dueDate || '2100-01-01');
+    const dB = new Date(b.dataset.dueDate || '2100-01-01');
+    return order === 'desc' ? dB - dA : dA - dB;
+  });
+  cards.forEach(card => taskList.appendChild(card.parentElement));
+}
+
+// 按标签过滤
+function filterTasksByTag(tag) {
+  const taskList = document.getElementById('taskList');
+  const cards = Array.from(taskList.querySelectorAll('.task-card'));
+  let anyVisible = false;
+  cards.forEach(card => {
+    const tags = (card.dataset.tags || '').split(',').map(t => t.trim());
+    if (tags.includes(tag)) {
+      card.parentElement.style.display = '';
+      anyVisible = true;
+    } else {
+      card.parentElement.style.display = 'none';
+    }
+  });
+  // 如果没有任何卡片显示，显示空状态
+  if (!anyVisible) {
+    showEmptyState(`No tasks found with tag "${tag}"`);
+  }
+}
+
+// 清除所有筛选
+function clearAllFilters() {
+  // Reload all tasks from API to reset to default state
+  loadTasksFromAPI();
+  
+  // Reset filter button text
+  const filterBtn = document.getElementById('filterDropdown');
+  if (filterBtn) {
+    filterBtn.innerHTML = `<i class="bi bi-funnel me-2"></i>Filter Tasks`;
+  }
+  
+  // Hide empty state
+  hideEmptyState();
+}
+
+// 显示空状态
+function showEmptyState(message) {
+  let emptyState = document.getElementById('emptyState');
+  if (!emptyState) {
+    emptyState = document.createElement('div');
+    emptyState.id = 'emptyState';
+    emptyState.className = 'col-12 text-center py-5';
+    document.getElementById('taskList').appendChild(emptyState);
+  }
+  emptyState.innerHTML = `
+    <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+    <h4 class="mt-3 text-muted">${message}</h4>
+    <p class="text-muted">Try a different filter or add new tasks.</p>
+  `;
+}
+
+// 隐藏空状态
+function hideEmptyState() {
+  const emptyState = document.getElementById('emptyState');
+  if (emptyState) {
+    emptyState.remove();
+  }
+}
