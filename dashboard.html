@@ -716,17 +716,23 @@
                             <label for="editTaskDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="editTaskDescription" rows="3">Finalize the quarterly project report and submit to supervisor.</textarea>
                         </div>
-                        <div class="mb-3">
-                            <label for="editTaskDueDate" class="form-label">Due Date</label>
-                            <input type="date" class="form-control" id="editTaskDueDate" value="2025-07-01">
-                        </div>
-                        <div class="mb-3">
-                            <label for="editTaskPriority" class="form-label">Priority</label>
-                            <select class="form-select" id="editTaskPriority">
-                                <option value="High" selected>High</option>
-                                <option value="Medium">Medium</option>
-                                <option value="Low">Low</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editTaskDueDate" class="form-label">Due Date</label>
+                                    <input type="date" class="form-control" id="editTaskDueDate" value="2025-07-01">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editTaskPriority" class="form-label">Priority</label>
+                                    <select class="form-select" id="editTaskPriority">
+                                        <option value="High" selected>High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="editTaskTags" class="form-label">Tags (comma-separated)</label>
