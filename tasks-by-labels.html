@@ -57,10 +57,16 @@
       }
 
       .form-control.search-bar {
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--primary-accent);
+        box-shadow: none;
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         background-color: var(--background-color);
         color: var(--text-color);
+        border-top-left-radius: 0.375rem;
+        border-bottom-left-radius: 0.375rem;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        padding-left: 12px;
       }
 
       .form-control.search-bar::placeholder {
@@ -68,7 +74,6 @@
         opacity: 0.7;
       }
 
-      /* Enhanced search input group with glowing effect */
       .input-group:focus-within {
         box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
         border-radius: 0.375rem;
@@ -76,22 +81,32 @@
 
       .input-group:focus-within .form-control.search-bar {
         border-right: none;
-        border-color: var(--primary-accent);
-        box-shadow: none;
+        box-shadow: none !important;
+        outline: none !important;
+        z-index: 3;
+      }
+
+      /* Override default form-control focus styles when inside focused input-group */
+      .input-group:focus-within .form-control.search-bar:focus {
+        box-shadow: none !important;
+        border-color: inherit !important;
       }
 
       .input-group:focus-within .btn-primary-accent {
         border-left: none;
+        box-shadow: none !important;
+        outline: none !important;
+        z-index: 3;
+      }
+
+      /* Override default button focus styles when inside focused input-group */
+      .input-group:focus-within .btn-primary-accent:focus {
+        box-shadow: none !important;
+      }
+
+      .form-check-input:checked {
+        background-color: var(--primary-accent);
         border-color: var(--primary-accent);
-        box-shadow: none;
-      }
-
-      .input-group .form-control.search-bar {
-        border-right: none;
-      }
-
-      .input-group .btn-primary-accent {
-        border-left: none;
       }
 
       /* Utility class for primary accent text color */
@@ -620,7 +635,7 @@
               aria-labelledby="userDropdown"
             >
               <li>
-                <a class="dropdown-item" href="#"
+                <a class="dropdown-item" href="account.html"
                   ><i class="bi bi-person me-2"></i>Profile</a
                 >
               </li>
@@ -756,10 +771,11 @@
           </div>
         </div>
 
-        <!-- Search Row -->
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="input-group">
+        <!-- Search and Filter Row -->
+        <div class="row mb-4 search-and-filter">
+          <!-- Search Bar -->
+          <div class="col-12 col-md-8 mb-3 mb-md-0">
+            <div class="input-group mb-3">
               <input
                 type="text"
                 class="form-control search-bar"
@@ -772,16 +788,19 @@
             </div>
 
             <!-- Search Options -->
-            <div class="d-flex align-items-center mt-2 mb-2">
-              <div class="form-check me-3">
+            <div class="d-flex flex-wrap gap-3 mb-2">
+              <div class="form-check">
                 <input
                   class="form-check-input"
                   type="checkbox"
                   id="semanticSearchCheckbox"
                   checked
                 />
-                <label class="form-check-label" for="semanticSearchCheckbox">
-                  <small>Semantic Search</small>
+                <label
+                  class="form-check-label small"
+                  for="semanticSearchCheckbox"
+                >
+                  Semantic Search
                 </label>
               </div>
               <div class="form-check">
@@ -790,24 +809,40 @@
                   type="checkbox"
                   id="containsSearchCheckbox"
                 />
-                <label class="form-check-label" for="containsSearchCheckbox">
-                  <small>Contains Search</small>
+                <label
+                  class="form-check-label small"
+                  for="containsSearchCheckbox"
+                >
+                  Contains Search
                 </label>
               </div>
+              <button
+                class="btn btn-outline-secondary btn-sm"
+                id="clearSearchBtn"
+                style="display: none"
+              >
+                <i class="bi bi-x-circle me-1"></i>Clear Search
+              </button>
             </div>
 
             <!-- All Labels / Current Filter information -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="d-flex justify-content-between align-items-center">
               <div id="selectedLabelInfo">
                 <span class="text-muted">All labels</span>
               </div>
               <button
-                class="btn btn-sm btn-outline-secondary d-none"
+                class="btn btn-sm btn-outline-secondary"
                 id="clearSelectionBtn"
+                style="display: none"
               >
                 <i class="bi bi-x-circle me-1"></i>Clear Selection
               </button>
             </div>
+          </div>
+
+          <!-- Filter/Action Section -->
+          <div class="col-12 col-md-4 text-md-end">
+            <!-- Additional actions can be added here if needed -->
           </div>
         </div>
 

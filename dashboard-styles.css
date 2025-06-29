@@ -62,12 +62,15 @@
 }
 
 /* Search Bar Enhancements */
-.search-bar {
+/* Note: Dashboard page has its own custom search bar styles */
+
+/* Default search bar for other pages */
+.search-bar:not(.dashboard-page .search-bar) {
   border-radius: 25px;
   padding-left: 20px;
 }
 
-.search-bar:focus {
+.search-bar:not(.dashboard-page .search-bar):focus {
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
   border-color: #86b7fe;
 }

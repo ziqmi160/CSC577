@@ -570,9 +570,9 @@ function updateSearchUI() {
   // Show/hide clear search button
   if (clearSearchBtn) {
     if (currentSearchQuery && currentSelectedLabel) {
-      clearSearchBtn.classList.remove("d-none");
+      clearSearchBtn.style.display = "inline-block";
     } else {
-      clearSearchBtn.classList.add("d-none");
+      clearSearchBtn.style.display = "none";
     }
   }
 }
@@ -1089,15 +1089,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     searchButton.addEventListener("click", handleSearchInput);
   }
 
-  // Set up event listeners for search checkboxes (similar to index.js)
+  // Set up event listeners for search checkboxes
   const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
   const containsCheckbox = document.getElementById("containsSearchCheckbox");
 
   if (semanticCheckbox) {
     semanticCheckbox.addEventListener("change", function () {
-      // If current search exists, re-run it with new settings
+      // If current search exists, re-run it with new options
       if (currentSearchQuery && currentSelectedLabel) {
-        const useSemantic = semanticCheckbox.checked;
+        const useSemantic = this.checked;
         const useContains = containsCheckbox?.checked || false;
         performSearch(
           currentSearchQuery,
@@ -1111,10 +1111,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   if (containsCheckbox) {
     containsCheckbox.addEventListener("change", function () {
-      // If current search exists, re-run it with new settings
+      // If current search exists, re-run it with new options
       if (currentSearchQuery && currentSelectedLabel) {
         const useSemantic = semanticCheckbox?.checked || false;
-        const useContains = containsCheckbox.checked;
+        const useContains = this.checked;
         performSearch(
           currentSearchQuery,
           currentSelectedLabel,
@@ -1125,27 +1125,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
   }
 
-  // Add clear search button functionality (create if it doesn't exist)
-  let clearSearchBtn = document.getElementById("clearSearchBtn");
-  if (!clearSearchBtn && searchBar) {
-    // Create clear search button dynamically
-    clearSearchBtn = document.createElement("button");
-    clearSearchBtn.id = "clearSearchBtn";
-    clearSearchBtn.className = "btn btn-sm btn-outline-secondary d-none ms-2";
-    clearSearchBtn.innerHTML =
-      '<i class="bi bi-x-circle me-1"></i>Clear Search';
-    clearSearchBtn.title = "Clear search and return to label view";
-
-    // Insert after the search input group
-    const inputGroup = searchBar.closest(".input-group");
-    if (inputGroup && inputGroup.parentNode) {
-      inputGroup.parentNode.insertBefore(
-        clearSearchBtn,
-        inputGroup.nextSibling
-      );
-    }
-  }
-
+  // Set up clear search button event listener
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
   if (clearSearchBtn) {
     clearSearchBtn.addEventListener("click", clearSemanticSearch);
   }

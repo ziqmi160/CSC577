@@ -780,6 +780,12 @@ function setupSearchFilter() {
       }
     });
   }
+
+  // Setup clear search button
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener("click", clearSearch);
+  }
 }
 
 // --- Handle Search Bar Input ---
@@ -1015,38 +1021,13 @@ function updateSearchStatus(isSearchActive, query = null) {
   let clearSearchBtn = document.getElementById("clearSearchBtn");
 
   if (isSearchActive && query) {
-    // Create clear search button if it doesn't exist
-    if (!clearSearchBtn) {
-      const searchBar = document.querySelector(".search-bar");
-      if (searchBar) {
-        clearSearchBtn = document.createElement("button");
-        clearSearchBtn.id = "clearSearchBtn";
-        clearSearchBtn.className = "btn btn-sm btn-outline-secondary ms-2";
-        clearSearchBtn.innerHTML =
-          '<i class="bi bi-x-circle me-1"></i>Clear Search';
-        clearSearchBtn.title = "Clear search and return to priority view";
-
-        // Insert after the search input group
-        const inputGroup = searchBar.closest(".input-group");
-        if (inputGroup && inputGroup.parentNode) {
-          inputGroup.parentNode.insertBefore(
-            clearSearchBtn,
-            inputGroup.nextSibling
-          );
-        }
-
-        // Add event listener
-        clearSearchBtn.addEventListener("click", clearSearch);
-      }
-    }
-
     if (clearSearchBtn) {
-      clearSearchBtn.classList.remove("d-none");
+      clearSearchBtn.style.display = "inline-block";
     }
   } else {
     // Hide clear search button
     if (clearSearchBtn) {
-      clearSearchBtn.classList.add("d-none");
+      clearSearchBtn.style.display = "none";
     }
   }
 }

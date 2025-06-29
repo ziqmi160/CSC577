@@ -860,6 +860,12 @@ function setupSearchFunctionality() {
       }
     });
   }
+
+  // Set up clear search button event listener
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener("click", clearSearch);
+  }
 }
 
 // --- Handle Search Bar Input ---
@@ -1055,19 +1061,16 @@ function updateSearchStatus(isSearchActive, query = null) {
             inputGroup.nextSibling
           );
         }
-
-        // Add event listener
-        clearSearchBtn.addEventListener("click", clearSearch);
       }
     }
 
     if (clearSearchBtn) {
-      clearSearchBtn.classList.remove("d-none");
+      clearSearchBtn.style.display = "inline-block";
     }
   } else {
     // Hide clear search button
     if (clearSearchBtn) {
-      clearSearchBtn.classList.add("d-none");
+      clearSearchBtn.style.display = "none";
     }
   }
 }

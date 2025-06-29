@@ -46,14 +46,49 @@
 
 .form-control.search-bar {
   border: 1px solid var(--primary-accent);
-  box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+  box-shadow: none;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   background-color: var(--background-color);
   color: var(--text-color);
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-left: 12px;
 }
 .form-control.search-bar::placeholder {
   color: var(--text-color);
   opacity: 0.7;
+}
+
+.input-group:focus-within {
+  box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+  border-radius: 0.375rem;
+}
+
+.input-group:focus-within .form-control.search-bar {
+  border-right: none;
+  box-shadow: none !important;
+  outline: none !important;
+  z-index: 3;
+}
+
+/* Override default form-control focus styles when inside focused input-group */
+.input-group:focus-within .form-control.search-bar:focus {
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+.input-group:focus-within .btn-primary-accent {
+  border-left: none;
+  box-shadow: none !important;
+  outline: none !important;
+  z-index: 3;
+}
+
+/* Override default button focus styles when inside focused input-group */
+.input-group:focus-within .btn-primary-accent:focus {
+  box-shadow: none !important;
 }
 
 .btn-primary-accent {
@@ -508,9 +543,43 @@
     text-decoration: line-through;
 }
 
+/* Attachment button styling */
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.attachment-filename {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+/* File type icons */
+.file-icon {
+  font-size: 1.1rem;
+}
+
     </style>
 </head>
-<body>
+<body class="dashboard-page">
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand navbar-light py-2">
@@ -540,7 +609,7 @@
                         <img src="https://ui-avatars.com/api/?name=User&background=7b34d2&color=fff" class="user-avatar" alt="User Avatar">
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="account.html"><i class="bi bi-person me-2"></i>Profile</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                     </ul>
@@ -605,33 +674,60 @@
                 <h1 class="mb-0">My Tasks</h1>
                 <span class="task-counter badge bg-secondary">0 tasks</span>
             </div>        <!-- Search and Filter Row -->
-        <div class="row mb-4 align-items-center search-and-filter">
+        <div class="row mb-4 search-and-filter">
             <!-- Search Bar -->
             <div class="col-12 col-md-8 mb-3 mb-md-0">
-                <div class="input-group">
+                <div class="input-group mb-3">
                     <input type="text" class="form-control search-bar" placeholder="Search your tasks...">
                     <button class="btn btn-primary-accent" type="button"><i class="bi bi-search"></i></button>
+                </div>
+                
+                <!-- Search Options -->
+                <div class="d-flex flex-wrap gap-3 mb-2">
+                    <div class="form-check">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="semanticSearchCheckbox"
+                            checked
+                        />
+                        <label class="form-check-label small" for="semanticSearchCheckbox">
+                            Semantic Search
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="containsSearchCheckbox"
+                        />
+                        <label class="form-check-label small" for="containsSearchCheckbox">
+                            Contains Search
+                        </label>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" id="clearSearchBtn" style="display: none;">
+                        <i class="bi bi-x-circle me-1"></i>Clear Search
+                    </button>
                 </div>
             </div>
             
             <!-- Filter Dropdown -->
-            <div class="col-12 col-md-4 text-md-end">
+            <div class="col-12 col-md-4 text-md-end d-flex justify-content-md-end align-items-center" style="gap: 0.5rem;">
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-funnel me-2"></i>Filter Tasks
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
                         <li><h6 class="dropdown-header">Sort By</h6></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="priority-desc">Priority (High to Low)</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="date-desc">Due Date (Newest to Oldest)</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header">Filter by Tags</h6></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Work">Work</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Personal">Personal</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Study">Study</a></li>
-                        <li><a class="dropdown-item" href="#" data-filter-type="tag" data-tag="Health">Health</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="priority-desc">High to Low Priority</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="priority-asc">Low to High Priority</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="date-asc">Early To Do</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter-type="date-desc">Lately To Do</a></li>
                     </ul>
                 </div>
+                <button class="btn btn-outline-danger ms-2" id="clearFiltersBtn" type="button">
+                    <i class="bi bi-x-circle me-1"></i>Clear Filter
+                </button>
             </div>
         </div>
 
@@ -641,7 +737,7 @@
     </div>
 
     <!-- Floating Action Button (FAB) for Adding Tasks -->
-    <a href="#" class="fab-button" data-bs-toggle="modal" data-bs-target="#addTaskModal" data-bs-toggle="tooltip" data-bs-placement="left" title="Add Task">
+    <a href="#" id="showAddFormBtn" class="fab-button" title="Add Task">
         <i class="bi bi-plus-lg"></i>
     </a>
 
@@ -658,11 +754,17 @@
                     <form id="taskForm">
                         <div class="mb-3">
                             <label for="taskTitle" class="form-label">Task Title *</label>
-                            <input type="text" class="form-control" id="taskTitle" name="title" placeholder="e.g., Finish report by Friday" required>
+                            <input type="text" class="form-control" id="taskTitle" name="title" placeholder="e.g., Finish report by Friday" required maxlength="100">
+                            <div class="form-text">
+                                <small class="text-muted">Maximum 100 characters</small>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="taskDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="taskDescription" name="description" rows="3" placeholder="Detailed description of the task..."></textarea>
+                            <label for="taskDescription" class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                            <textarea class="form-control" id="taskDescription" name="description" rows="3" placeholder="Detailed description of the task..." maxlength="500"></textarea>
+                            <div class="form-text">
+                                <small class="text-muted">Maximum 500 characters</small>
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -683,12 +785,34 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="taskTags" class="form-label">Tags (comma-separated)</label>
-                            <input type="text" class="form-control" id="taskTags" name="tags" placeholder="e.g., Work, Urgent, Project A">
+                            <label for="taskTags" class="form-label">
+                                Tags
+                                <small class="text-muted ms-2">(Optional)</small>
+                            </label>
+                            <div class="d-flex mb-2">
+                                <input type="text" id="tagInput" class="form-control inputcss" placeholder="Add tags (comma separated)..." />
+                                <button type="button" id="addTagBtn" class="btn btn-outline-primary ms-2">Add Tag</button>
+                            </div>
+                            <select id="existingTagsDropdown" class="form-select mb-2">
+                                <option value="">Select existing tag</option>
+                            </select>
+                            <div id="tagContainer" class="mt-2"></div>
                         </div>
                         <div class="mb-3">
-                            <label for="taskAttachment" class="form-label">Attachment</label>
-                            <input type="file" class="form-control" id="taskAttachment" name="attachment" multiple>
+                            <label for="taskAttachment" class="form-label">
+                                Attachments
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <label for="taskAttachment" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                </label>
+                                <input type="file" class="form-control" id="taskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
+                            </div>
+                            <div id="attachmentContainer" class="mt-2"></div>
+                            <small class="text-muted">You can select multiple files. Supported formats: All file types.</small>
                         </div>
                     </form>
                 </div>
@@ -698,7 +822,7 @@
                 </div>
             </div>
         </div>
-    </div>    <!-- Edit Task Modal (reusing the same structure as Add Task for simplicity) -->
+    </div>    <!-- Edit Task Modal -->
     <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -707,47 +831,74 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
+                    <form id="editTaskForm">
                         <div class="mb-3">
-                            <label for="editTaskTitle" class="form-label">Task Title</label>
-                            <input type="text" class="form-control" id="editTaskTitle" value="Project Report Submission">
+                            <label for="editTaskTitle" class="form-label">Task Title *</label>
+                            <input type="text" class="form-control" id="editTaskTitle" name="title" placeholder="e.g., Finish report by Friday" required maxlength="100">
+                            <div class="form-text">
+                                <small class="text-muted">Maximum 100 characters</small>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="editTaskDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="editTaskDescription" rows="3">Finalize the quarterly project report and submit to supervisor.</textarea>
+                            <label for="editTaskDescription" class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                            <textarea class="form-control" id="editTaskDescription" name="description" rows="3" placeholder="Detailed description of the task..." maxlength="500"></textarea>
+                            <div class="form-text">
+                                <small class="text-muted">Maximum 500 characters</small>
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="editTaskDueDate" class="form-label">Due Date</label>
-                                    <input type="date" class="form-control" id="editTaskDueDate" value="2025-07-01">
+                                    <label for="editTaskDueDate" class="form-label">Due Date *</label>
+                                    <input type="date" class="form-control" id="editTaskDueDate" name="dueDate" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="editTaskPriority" class="form-label">Priority</label>
-                                    <select class="form-select" id="editTaskPriority">
-                                        <option value="High" selected>High</option>
-                                        <option value="Medium">Medium</option>
+                                    <select class="form-select" id="editTaskPriority" name="priority">
                                         <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="editTaskTags" class="form-label">Tags (comma-separated)</label>
-                            <input type="text" class="form-control" id="editTaskTags" value="Work, Urgent">
+                            <label for="editTaskTags" class="form-label">
+                                Tags
+                                <small class="text-muted ms-2">(Optional)</small>
+                            </label>
+                            <div class="d-flex mb-2">
+                                <input type="text" id="editTagInput" class="form-control inputcss" placeholder="Add tags (comma separated)..." />
+                                <button type="button" id="editAddTagBtn" class="btn btn-outline-primary ms-2">Add Tag</button>
+                            </div>
+                            <select id="editExistingTagsDropdown" class="form-select mb-2">
+                                <option value="">Select existing tag</option>
+                            </select>
+                            <div id="editTagContainer" class="mt-2"></div>
                         </div>
                         <div class="mb-3">
-                            <label for="editTaskAttachment" class="form-label">Attachment</label>
-                            <input type="file" class="form-control" id="editTaskAttachment">
-                            <small class="text-muted">Current: report.pdf</small>
+                            <label for="editTaskAttachment" class="form-label">
+                                Attachments
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <label for="editTaskAttachment" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                </label>
+                                <input type="file" class="form-control" id="editTaskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
+                            </div>
+                            <div id="editAttachmentContainer" class="mt-2"></div>
+                            <small class="text-muted">You can select multiple files. Supported formats: All file types.</small>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary-accent"><i class="bi bi-check-circle me-2"></i>Update Task</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="editTaskForm" class="btn btn-primary-accent"><i class="bi bi-check-circle me-2"></i>Update Task</button>
                 </div>
             </div>
         </div>
@@ -824,6 +975,77 @@
         </div>
     </div>
 
+    <!-- Image Preview Modal -->
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagePreviewModalLabel">Image Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="previewImage" src="" alt="Preview" class="img-fluid" style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a id="downloadImageBtn" href="" download class="btn btn-primary">
+                        <i class="bi bi-download me-1"></i>Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Viewing Help Modal -->
+    <div class="modal fade" id="fileViewingHelpModal" tabindex="-1" aria-labelledby="fileViewingHelpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileViewingHelpModalLabel">
+                        <i class="bi bi-question-circle me-2"></i>File Viewing Guide
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="bi bi-check-circle me-1"></i>Viewable Files</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>📄 Documents:</strong> PDF, TXT, HTML, CSS, JS, JSON, XML, CSV, MD</li>
+                                <li><strong>🖼️ Images:</strong> JPG, PNG, GIF, SVG, WebP, BMP, ICO</li>
+                                <li><strong>🎵 Audio:</strong> MP3, WAV, OGG</li>
+                                <li><strong>🎬 Video:</strong> MP4, WebM, OGG</li>
+                                <li><strong>💻 Code:</strong> Python, Java, C++, PHP, Ruby, Go, Rust, Swift, Kotlin</li>
+                                <li><strong>📊 Data:</strong> YAML, TOML, INI, CONF, LOG</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Download Only</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>📄 Office:</strong> DOC, DOCX, XLS, XLSX, PPT, PPTX</li>
+                                <li><strong>📦 Archives:</strong> ZIP, RAR, 7Z</li>
+                                <li><strong>💻 Executables:</strong> EXE, APP, MSI</li>
+                                <li><strong>🔧 Other:</strong> Database files, proprietary formats</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-1"></i>Why Can't All Files Be Viewed?</h6>
+                        <ul class="mb-0">
+                            <li><strong>Browser Limitations:</strong> Web browsers can only display certain file formats natively</li>
+                            <li><strong>Security Restrictions:</strong> Executable files are blocked for security reasons</li>
+                            <li><strong>Proprietary Formats:</strong> Some files require specific software (like Microsoft Office)</li>
+                            <li><strong>Binary Files:</strong> Many file types are not human-readable text</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap JS CDN (bundle includes Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
