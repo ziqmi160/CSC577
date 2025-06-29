@@ -7,7 +7,7 @@ const API_BASE_URL = "http://localhost:5000";
 let allTasks = []; // Store all tasks for filtering
 let currentSelectedLabel = null; // Track currently selected label
 let currentSearchQuery = null; // Track current search query for semantic search
-let editItem = null; // Track task being edited
+
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
 
 // --- Authentication Functions ---
@@ -155,6 +155,22 @@ function updateLabelChipCounts() {
   const labelsGrid = document.getElementById("labelsGrid");
   if (labelsGrid) {
     labelsGrid.innerHTML = "";
+
+    // Check if there are any tasks at all
+    if (allTasks.length === 0) {
+      // Show simple message for no tasks at all
+      labelsGrid.innerHTML = `
+        <div class="col-12 text-center py-5">
+          <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+          <h4 class="mt-3 text-muted">No Tasks Yet</h4>
+          <p class="text-muted">Create your first task to start organizing with labels.</p>
+          <a href="dashboard.html" class="btn btn-primary-accent">
+            <i class="bi bi-plus-circle me-2"></i>Create Task
+          </a>
+        </div>
+      `;
+      return;
+    }
 
     // Add unlabeled tasks chip first (if there are unlabeled tasks)
     if (unlabeledCount > 0) {
@@ -454,14 +470,6 @@ function filterTasksByLabel(labelName) {
   renderTaskList(filteredTasks, labelName);
 }
 
-// --- Legacy Semantic Search Function (now calls performSearch) ---
-async function performSemanticSearch(query, labelName) {
-  console.log(
-    `Legacy performSemanticSearch called, redirecting to performSearch`
-  );
-  await performSearch(query, labelName, true, false);
-}
-
 // --- Render Task List (unified function for both filtering and search results) ---
 function renderTaskList(tasks, labelName, isSearchResult = false) {
   // Get the task list container
@@ -581,6 +589,9 @@ function clearSemanticSearch() {
   if (currentSelectedLabel) {
     filterTasksByLabel(currentSelectedLabel);
   }
+
+  // Show success message (consistent with priority and scheduled pages)
+  displaySuccessMessage("Search cleared!");
 }
 
 // --- Handle Search Bar Input ---

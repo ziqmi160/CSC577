@@ -57,8 +57,7 @@
       }
 
       .form-control.search-bar {
-        border: 1px solid var(--primary-accent);
-        box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+        border: 1px solid var(--border-color);
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         background-color: var(--background-color);
         color: var(--text-color);
@@ -67,6 +66,32 @@
       .form-control.search-bar::placeholder {
         color: var(--text-color);
         opacity: 0.7;
+      }
+
+      /* Enhanced search input group with glowing effect */
+      .input-group:focus-within {
+        box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+        border-radius: 0.375rem;
+      }
+
+      .input-group:focus-within .form-control.search-bar {
+        border-right: none;
+        border-color: var(--primary-accent);
+        box-shadow: none;
+      }
+
+      .input-group:focus-within .btn-primary-accent {
+        border-left: none;
+        border-color: var(--primary-accent);
+        box-shadow: none;
+      }
+
+      .input-group .form-control.search-bar {
+        border-right: none;
+      }
+
+      .input-group .btn-primary-accent {
+        border-left: none;
       }
 
       /* Utility class for primary accent text color */
@@ -540,16 +565,6 @@
           display: block;
         }
       }
-
-      @media (max-width: 768px) {
-        .search-input-container {
-          max-width: 100%;
-        }
-
-        .search-and-filter .col-12 {
-          margin-bottom: 0.75rem;
-        }
-      }
     </style>
   </head>
   <body>
@@ -741,17 +756,6 @@
           </div>
         </div>
 
-        <!-- Create New Label Button -->
-        <div class="mb-4">
-          <button
-            class="btn btn-primary-accent"
-            data-bs-toggle="modal"
-            data-bs-target="#createLabelModal"
-          >
-            <i class="bi bi-plus-circle me-2"></i>Create New Label
-          </button>
-        </div>
-
         <!-- Search Row -->
         <div class="row mb-4">
           <div class="col-12">
@@ -917,161 +921,6 @@
             </button>
             <button type="button" class="btn btn-warning" id="archiveTaskBtn">
               <i class="bi bi-archive me-2"></i>Archive
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Create Label Modal -->
-    <div
-      class="modal fade"
-      id="createLabelModal"
-      tabindex="-1"
-      aria-labelledby="createLabelModalLabel"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="createLabelModalLabel">
-              Create New Label
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form>
-              <div class="mb-3">
-                <label for="labelName" class="form-label">Label Name</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="labelName"
-                  placeholder="Enter a name for your label"
-                />
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Label Color</label>
-                <div class="d-flex flex-wrap gap-2">
-                  <div class="form-check form-check-inline">
-                    <input
-                      class="form-check-input"
-                      type="radio"
-                      name="labelColor"
-                      id="colorBlue"
-                      value="blue"
-                      checked
-                      style="
-                        background-color: #0d6efd;
-                        width: 25px;
-                        height: 25px;
-                      "
-                    />
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input
-                      class="form-check-input"
-                      type="radio"
-                      name="labelColor"
-                      id="colorRed"
-                      value="red"
-                      style="
-                        background-color: #dc3545;
-                        width: 25px;
-                        height: 25px;
-                      "
-                    />
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input
-                      class="form-check-input"
-                      type="radio"
-                      name="labelColor"
-                      id="colorGreen"
-                      value="green"
-                      style="
-                        background-color: #28a745;
-                        width: 25px;
-                        height: 25px;
-                      "
-                    />
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input
-                      class="form-check-input"
-                      type="radio"
-                      name="labelColor"
-                      id="colorYellow"
-                      value="yellow"
-                      style="
-                        background-color: #ffc107;
-                        width: 25px;
-                        height: 25px;
-                      "
-                    />
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input
-                      class="form-check-input"
-                      type="radio"
-                      name="labelColor"
-                      id="colorPurple"
-                      value="purple"
-                      style="
-                        background-color: #6f42c1;
-                        width: 25px;
-                        height: 25px;
-                      "
-                    />
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input
-                      class="form-check-input"
-                      type="radio"
-                      name="labelColor"
-                      id="colorGray"
-                      value="gray"
-                      style="
-                        background-color: #6c757d;
-                        width: 25px;
-                        height: 25px;
-                      "
-                    />
-                  </div>
-                </div>
-              </div>
-              <div class="mb-3">
-                <label for="labelIcon" class="form-label">Label Icon</label>
-                <select class="form-select" id="labelIcon">
-                  <option value="bi-briefcase">Briefcase</option>
-                  <option value="bi-person">Person</option>
-                  <option value="bi-book">Book</option>
-                  <option value="bi-heart-pulse">Health</option>
-                  <option value="bi-cash-coin">Finance</option>
-                  <option value="bi-people">Family</option>
-                  <option value="bi-laptop">Computer</option>
-                  <option value="bi-houses">Home</option>
-                  <option value="bi-airplane">Travel</option>
-                  <option value="bi-pin">Other</option>
-                </select>
-              </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Cancel
-            </button>
-            <button type="button" class="btn btn-primary-accent">
-              Create Label
             </button>
           </div>
         </div>

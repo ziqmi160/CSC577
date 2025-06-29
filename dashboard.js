@@ -105,11 +105,11 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
 function createTaskCard(task) {
   // Create the column wrapper
   const colDiv = document.createElement("div");
-  colDiv.className = "col";
+  colDiv.className = "col task-card-container";
 
   // Create card
   const cardDiv = document.createElement("div");
-  cardDiv.className = "card task-card h-100";
+  cardDiv.className = "card h-100 shadow-sm rounded-4 task-card";
   cardDiv.dataset.taskId = task._id;
   cardDiv.dataset.title = task.title;
   cardDiv.dataset.description = task.description || "";

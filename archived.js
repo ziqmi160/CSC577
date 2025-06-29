@@ -6,6 +6,9 @@ const API_BASE_URL = "http://localhost:5000";
 // --- Global Variables ---
 let editItem = null;
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
+let allArchivedTasks = []; // Store all archived tasks for filtering
+let currentSearchQuery = null; // Track current search query for semantic search
+let currentSortOption = "date-newest"; // Track current sort option
 
 // --- Authentication Functions ---
 function checkAuth() {
@@ -94,6 +97,13 @@ async function loadArchivedTasks() {
     });
     console.log("Filtered archived tasks:", archivedTasks);
     console.log("Archived tasks count:", archivedTasks.length);
+
+    // Store archived tasks globally for search functionality
+    allArchivedTasks = archivedTasks || [];
+
+    // Reset search state when loading all tasks
+    currentSearchQuery = null;
+    updateSearchStatus(false);
 
     if (archivedTasks && archivedTasks.length > 0) {
       // Sort by archived date (newest first) - using updatedAt as proxy for archived date
@@ -598,6 +608,400 @@ function displayErrorMessage(message) {
   }, 5000);
 }
 
+// --- Search Functionality ---
+function setupSearchFunctionality() {
+  const searchInput = document.querySelector(".search-bar");
+  const searchButton = document.querySelector(
+    ".btn-primary-accent[type='button']"
+  );
+
+  if (!searchInput) return;
+
+  // Handle Enter key press for search
+  searchInput.addEventListener("keypress", handleSearchInput);
+
+  if (searchButton) {
+    // Handle search button click
+    searchButton.addEventListener("click", handleSearchInput);
+  }
+
+  // Set up event listeners for search checkboxes
+  const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
+  const containsCheckbox = document.getElementById("containsSearchCheckbox");
+
+  if (semanticCheckbox) {
+    semanticCheckbox.addEventListener("change", function () {
+      if (currentSearchQuery) {
+        const useSemantic = this.checked;
+        const useContains = containsCheckbox?.checked || false;
+        performArchivedTasksSearch(
+          currentSearchQuery,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
+
+  if (containsCheckbox) {
+    containsCheckbox.addEventListener("change", function () {
+      if (currentSearchQuery) {
+        const useSemantic = semanticCheckbox?.checked || false;
+        const useContains = this.checked;
+        performArchivedTasksSearch(
+          currentSearchQuery,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
+}
+
+// --- Handle Search Bar Input ---
+function handleSearchInput(event) {
+  // Check if Enter key was pressed or search button clicked
+  if (event.key === "Enter" || event.type === "click") {
+    const query =
+      event.target.type === "text"
+        ? event.target.value.trim()
+        : event.target
+            .closest(".input-group")
+            .querySelector("input")
+            .value.trim();
+
+    if (query.length === 0) {
+      // Empty query - return to normal view
+      currentSearchQuery = null;
+      updateSearchStatus(false);
+      loadArchivedTasks();
+      return;
+    }
+
+    if (query.length < 2) {
+      displayErrorMessage("Please enter at least 2 characters for search");
+      return;
+    }
+
+    // Get search type preferences
+    const useSemantic =
+      document.getElementById("semanticSearchCheckbox")?.checked || false;
+    const useContains =
+      document.getElementById("containsSearchCheckbox")?.checked || false;
+
+    // Perform search based on selected options
+    performArchivedTasksSearch(query, useSemantic, useContains);
+  }
+}
+
+// --- Enhanced Search Function (supports both semantic and contains search) ---
+async function performArchivedTasksSearch(
+  query,
+  useSemantic = true,
+  useContains = false
+) {
+  try {
+    console.log(
+      `Performing search for "${query}" - Semantic: ${useSemantic}, Contains: ${useContains}`
+    );
+
+    // Build search URL with parameters
+    let searchUrl = "/tasks";
+    const params = [];
+
+    if (useSemantic) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+    if (useContains) {
+      params.push(`contains=${encodeURIComponent(query)}`);
+    }
+
+    // If neither option is selected, default to semantic search
+    if (!useSemantic && !useContains) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+
+    if (params.length > 0) {
+      searchUrl += `?${params.join("&")}`;
+    }
+
+    console.log("Search URL:", searchUrl);
+
+    // Send GET request to the backend
+    const searchResults = await apiFetch(searchUrl);
+    console.log(`Search returned ${searchResults.length} total results`);
+
+    // Filter for archived tasks only
+    const archivedSearchResults = searchResults.filter((task) => {
+      return (
+        task.completed === true ||
+        task.completed === "true" ||
+        task.completed === 1
+      );
+    });
+
+    console.log(
+      `Filtered to ${archivedSearchResults.length} archived search results`
+    );
+
+    // Store the current search query for UI state
+    currentSearchQuery = query;
+    updateSearchStatus(true, query);
+
+    // Render search results
+    renderArchivedTasks(archivedSearchResults);
+  } catch (error) {
+    console.error("Search failed:", error);
+    displayErrorMessage("Search failed. Please try again.");
+
+    // Fall back to regular search
+    filterArchivedTasksBySearch(query);
+  }
+}
+
+// --- Fallback Regular Search Function ---
+function filterArchivedTasksBySearch(query) {
+  if (!query) {
+    loadArchivedTasks(); // Reset to show all tasks
+    return;
+  }
+
+  // Filter archived tasks that match the search query
+  const filteredTasks = allArchivedTasks.filter((task) => {
+    const titleMatch = task.title.toLowerCase().includes(query.toLowerCase());
+    const descriptionMatch =
+      task.description &&
+      task.description.toLowerCase().includes(query.toLowerCase());
+    const tagsMatch =
+      task.label &&
+      task.label.some((tag) => tag.toLowerCase().includes(query.toLowerCase()));
+
+    return titleMatch || descriptionMatch || tagsMatch;
+  });
+
+  // Store the current search query
+  currentSearchQuery = query;
+  updateSearchStatus(true, query);
+
+  // Render filtered tasks
+  renderArchivedTasks(filteredTasks);
+}
+
+// --- Render Archived Tasks (unified function for both normal loading and search results) ---
+function renderArchivedTasks(tasks) {
+  const taskContainer = document.getElementById("archivedTaskList");
+
+  // Clear existing tasks
+  taskContainer.innerHTML = "";
+
+  if (tasks.length === 0) {
+    // Show empty state for no results
+    showEmptySearchState();
+  } else {
+    // Sort tasks based on current sort option
+    const sortedTasks = sortTasks([...tasks], currentSortOption);
+
+    // Render each archived task
+    sortedTasks.forEach((task) => {
+      const taskCard = createArchivedTaskCard(task);
+      taskContainer.appendChild(taskCard);
+    });
+
+    // Hide empty state
+    const emptyState = document.getElementById("noArchivedTasks");
+    if (emptyState) {
+      emptyState.classList.add("d-none");
+    }
+  }
+
+  // Update task counter
+  updateArchivedTaskCounter(tasks.length);
+}
+
+// --- Sorting Functions ---
+function sortTasks(tasks, sortOption) {
+  switch (sortOption) {
+    case "date-newest":
+      return tasks.sort(
+        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+      );
+    case "date-oldest":
+      return tasks.sort(
+        (a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)
+      );
+    case "title-asc":
+      return tasks.sort((a, b) => a.title.localeCompare(b.title));
+    case "title-desc":
+      return tasks.sort((a, b) => b.title.localeCompare(a.title));
+    case "priority-high":
+      return tasks.sort((a, b) => {
+        const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+        return (
+          (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0)
+        );
+      });
+    case "priority-low":
+      return tasks.sort((a, b) => {
+        const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+        return (
+          (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)
+        );
+      });
+    default:
+      return tasks.sort(
+        (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
+      );
+  }
+}
+
+function handleSortChange(sortOption) {
+  currentSortOption = sortOption;
+
+  // Update sort button text to show current selection
+  updateSortButtonText(sortOption);
+
+  // Re-render tasks with new sort order
+  if (currentSearchQuery) {
+    // If we're in search mode, re-render search results
+    const useSemantic =
+      document.getElementById("semanticSearchCheckbox")?.checked || false;
+    const useContains =
+      document.getElementById("containsSearchCheckbox")?.checked || false;
+    performArchivedTasksSearch(currentSearchQuery, useSemantic, useContains);
+  } else {
+    // Re-render all archived tasks with new sort order
+    renderArchivedTasks(allArchivedTasks);
+  }
+
+  // Show success message
+  displaySuccessMessage(
+    `Tasks sorted by ${getSortOptionDisplayName(sortOption)}`
+  );
+}
+
+function updateSortButtonText(sortOption) {
+  const sortButton = document.getElementById("sortDropdown");
+  if (sortButton) {
+    const displayName = getSortOptionDisplayName(sortOption);
+    sortButton.innerHTML = `<i class="bi bi-sort-down me-2"></i>${displayName}`;
+  }
+}
+
+function getSortOptionDisplayName(sortOption) {
+  const displayNames = {
+    "date-newest": "Date Archived (Newest First)",
+    "date-oldest": "Date Archived (Oldest First)",
+    "title-asc": "Title (A-Z)",
+    "title-desc": "Title (Z-A)",
+    "priority-high": "Priority (High to Low)",
+    "priority-low": "Priority (Low to High)",
+  };
+  return displayNames[sortOption] || "Date Archived (Newest First)";
+}
+
+function setupSortFunctionality() {
+  // Get all sort dropdown items
+  const sortItems = document.querySelectorAll(
+    "#sortDropdown + .dropdown-menu .dropdown-item[data-sort]"
+  );
+
+  sortItems.forEach((item) => {
+    item.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      // Get sort option from data attribute
+      const sortOption = this.dataset.sort || "date-newest";
+
+      // Remove active class from all items and add to current
+      sortItems.forEach((i) => i.classList.remove("active"));
+      this.classList.add("active");
+
+      handleSortChange(sortOption);
+    });
+  });
+
+  // Set initial active state for default sort option
+  const defaultSortItem = document.querySelector(
+    `[data-sort="${currentSortOption}"]`
+  );
+  if (defaultSortItem) {
+    defaultSortItem.classList.add("active");
+  }
+}
+
+// --- Show Empty Search State ---
+function showEmptySearchState() {
+  const taskContainer = document.getElementById("archivedTaskList");
+  const emptyDiv = document.createElement("div");
+  emptyDiv.className = "col-12";
+  emptyDiv.innerHTML = `
+    <div class="text-center py-5">
+      <i class="bi bi-search text-muted" style="font-size: 4rem"></i>
+      <h3 class="mt-3 text-muted">No Results Found</h3>
+      <p class="text-muted">No archived tasks match your search query.</p>
+      <button class="btn btn-outline-secondary mt-3" onclick="clearSearch()">
+        <i class="bi bi-x-circle me-2"></i>Clear Search
+      </button>
+    </div>
+  `;
+  taskContainer.appendChild(emptyDiv);
+}
+
+// --- Show/Hide Search Status ---
+function updateSearchStatus(isSearchActive, query = null) {
+  let clearSearchBtn = document.getElementById("clearSearchBtn");
+
+  if (isSearchActive && query) {
+    // Create clear search button if it doesn't exist
+    if (!clearSearchBtn) {
+      const searchBar = document.querySelector(".search-bar");
+      if (searchBar) {
+        clearSearchBtn = document.createElement("button");
+        clearSearchBtn.id = "clearSearchBtn";
+        clearSearchBtn.className = "btn btn-sm btn-outline-secondary ms-2";
+        clearSearchBtn.innerHTML =
+          '<i class="bi bi-x-circle me-1"></i>Clear Search';
+        clearSearchBtn.title = "Clear search and return to archived view";
+
+        // Insert after the search input group
+        const inputGroup = searchBar.closest(".input-group");
+        if (inputGroup && inputGroup.parentNode) {
+          inputGroup.parentNode.insertBefore(
+            clearSearchBtn,
+            inputGroup.nextSibling
+          );
+        }
+
+        // Add event listener
+        clearSearchBtn.addEventListener("click", clearSearch);
+      }
+    }
+
+    if (clearSearchBtn) {
+      clearSearchBtn.classList.remove("d-none");
+    }
+  } else {
+    // Hide clear search button
+    if (clearSearchBtn) {
+      clearSearchBtn.classList.add("d-none");
+    }
+  }
+}
+
+// --- Clear Search Function ---
+function clearSearch() {
+  const searchInput = document.querySelector(".search-bar");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+  currentSearchQuery = null;
+  updateSearchStatus(false);
+  loadArchivedTasks();
+
+  displaySuccessMessage("Search cleared!");
+}
+
 // --- Initialize Page ---
 document.addEventListener("DOMContentLoaded", function () {
   // Check authentication first
@@ -622,4 +1026,10 @@ document.addEventListener("DOMContentLoaded", function () {
       handleLogout();
     });
   }
+
+  // Setup search functionality
+  setupSearchFunctionality();
+
+  // Setup sort functionality
+  setupSortFunctionality();
 });

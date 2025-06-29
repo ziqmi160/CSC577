@@ -5,8 +5,8 @@ const API_BASE_URL = "http://localhost:5000";
 
 // --- Global Variables ---
 let allTasks = []; // Store all tasks fetched from backend
-let filteredTasks = []; // Store currently filtered tasks
 let currentPriorityFilter = "all"; // Track current priority filter
+let currentSearchQuery = null; // Track current search query for semantic search
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
 
 // --- Authentication Functions ---
@@ -76,6 +76,10 @@ async function fetchAllTasks() {
     // Store all tasks globally for filtering
     allTasks = tasks || [];
 
+    // Reset search state when fetching all tasks
+    currentSearchQuery = null;
+    updateSearchStatus(false);
+
     // Apply current filter to display tasks
     applyPriorityFilter(currentPriorityFilter);
   } catch (error) {
@@ -89,16 +93,14 @@ function applyPriorityFilter(priority) {
   currentPriorityFilter = priority;
 
   // Filter tasks based on selected priority
-  if (priority === "all") {
-    // Show all tasks (including archived ones)
-    filteredTasks = allTasks;
-  } else {
-    // Filter tasks where priority matches selected priority (including archived)
-    filteredTasks = allTasks.filter(
-      (task) =>
-        task.priority && task.priority.toLowerCase() === priority.toLowerCase()
-    );
-  }
+  const filteredTasks =
+    priority === "all"
+      ? allTasks
+      : allTasks.filter(
+          (task) =>
+            task.priority &&
+            task.priority.toLowerCase() === priority.toLowerCase()
+        );
 
   // Render the filtered tasks
   renderTasks(filteredTasks);
@@ -290,12 +292,33 @@ function createPriorityTaskCard(task) {
 
 // --- Task Action Functions ---
 
-// Edit task function - redirect to dashboard with edit parameter
+// Edit task function - show edit modal instead of redirecting
 async function editTask(taskId) {
   if (actionInProgress.has(taskId)) return;
 
-  // Redirect to dashboard with edit parameter
-  window.location.href = `dashboard.html?edit=${taskId}`;
+  try {
+    // Find the task to edit
+    const task = allTasks.find((t) => t._id === taskId);
+    if (!task) {
+      displayErrorMessage("Task not found");
+      return;
+    }
+
+    // Populate the edit form with task data
+    populateEditForm(task);
+
+    // Store task ID for form submission
+    window.currentEditTaskId = taskId;
+
+    // Show the edit modal
+    const editModal = new bootstrap.Modal(
+      document.getElementById("editTaskModal")
+    );
+    editModal.show();
+  } catch (error) {
+    console.error("Failed to open edit form:", error);
+    displayErrorMessage("Failed to open edit form");
+  }
 }
 
 // Archive task function
@@ -506,6 +529,119 @@ function setupModalActionButtons(taskId) {
   };
 }
 
+// --- Edit Task Form Functions ---
+
+// Populate edit form with task data
+function populateEditForm(task) {
+  // Set form fields
+  document.getElementById("editTaskTitle").value = task.title || "";
+  document.getElementById("editTaskDescription").value = task.description || "";
+  document.getElementById("editTaskPriority").value = task.priority || "Low";
+
+  // Set due date (convert from ISO string to date input format)
+  if (task.dueDate) {
+    const dueDate = new Date(task.dueDate);
+    document.getElementById("editTaskDueDate").value = dueDate
+      .toISOString()
+      .split("T")[0];
+  } else {
+    document.getElementById("editTaskDueDate").value = "";
+  }
+
+  // Set tags (convert array to comma-separated string)
+  if (task.label && Array.isArray(task.label)) {
+    document.getElementById("editTaskTags").value = task.label.join(", ");
+  } else {
+    document.getElementById("editTaskTags").value = "";
+  }
+
+  // Clear file input
+  document.getElementById("editTaskAttachment").value = "";
+}
+
+// Handle edit task form submission
+async function handleEditTaskSubmission(taskId) {
+  try {
+    // Collect form data
+    const taskData = {
+      title: document.getElementById("editTaskTitle").value.trim(),
+      description: document.getElementById("editTaskDescription").value.trim(),
+      priority: document.getElementById("editTaskPriority").value,
+      dueDate: document.getElementById("editTaskDueDate").value || null,
+    };
+
+    // Validate required fields
+    if (!taskData.title) {
+      displayErrorMessage("Task title is required");
+      return;
+    }
+
+    // Process tags
+    const tagsString = document.getElementById("editTaskTags").value.trim();
+    if (tagsString) {
+      taskData.label = tagsString
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag);
+    } else {
+      taskData.label = [];
+    }
+
+    // Check if there are new files to upload
+    const fileInput = document.getElementById("editTaskAttachment");
+    const hasNewFiles = fileInput.files && fileInput.files.length > 0;
+
+    if (hasNewFiles) {
+      // If there are new files, use FormData for multipart upload
+      const formData = new FormData();
+      formData.append("taskData", JSON.stringify(taskData));
+
+      // Add files
+      for (let i = 0; i < fileInput.files.length; i++) {
+        formData.append("files", fileInput.files[i]);
+      }
+
+      // Update task with files
+      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Unknown error" }));
+        throw new Error(
+          errorData.message || `Update failed: ${response.statusText}`
+        );
+      }
+    } else {
+      // No new files, use JSON update
+      await apiFetch(`/tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify(taskData),
+      });
+    }
+
+    displaySuccessMessage("Task updated successfully!");
+
+    // Hide the modal
+    const editModal = bootstrap.Modal.getInstance(
+      document.getElementById("editTaskModal")
+    );
+    editModal.hide();
+
+    // Refresh the tasks to reflect the changes
+    await fetchAllTasks();
+  } catch (error) {
+    console.error("Failed to update task:", error);
+    displayErrorMessage("Failed to update task: " + error.message);
+  }
+}
+
 // --- UI State Functions ---
 
 // Show loading state
@@ -568,41 +704,208 @@ function showErrorState(message) {
 
 // --- Message Display Functions ---
 function displaySuccessMessage(message) {
-  // Create and show a success toast/alert
-  console.log("Success:", message);
-  // You can implement a toast notification here if needed
+  showToast(message, "success");
 }
 
 function displayErrorMessage(message) {
-  // Create and show an error toast/alert
-  console.error("Error:", message);
-  // You can implement a toast notification here if needed
+  showToast(message, "error");
+}
+
+function showToast(message, type = "info") {
+  const toast = document.createElement("div");
+  toast.className = `alert alert-${
+    type === "success" ? "success" : "danger"
+  } alert-dismissible fade show`;
+  Object.assign(toast.style, {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    zIndex: "9999",
+    minWidth: "300px",
+  });
+
+  toast.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.parentNode?.removeChild(toast), 3000);
 }
 
 // --- Search Functionality ---
 function setupSearchFilter() {
   const searchInput = document.querySelector(".search-bar");
-  if (searchInput) {
-    searchInput.addEventListener("input", function (e) {
-      const searchTerm = e.target.value.toLowerCase().trim();
-      filterTasksBySearch(searchTerm);
+  const searchButton = document.querySelector(
+    '.input-group .btn-primary-accent[type="button"]'
+  );
+
+  if (!searchInput) return;
+
+  // Handle Enter key press for search
+  searchInput.addEventListener("keypress", handleSearchInput);
+
+  if (searchButton) {
+    // Handle search button click
+    searchButton.addEventListener("click", handleSearchInput);
+  }
+
+  // Set up event listeners for search checkboxes
+  const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
+  const containsCheckbox = document.getElementById("containsSearchCheckbox");
+
+  if (semanticCheckbox) {
+    semanticCheckbox.addEventListener("change", function () {
+      // If current search exists, re-run it with new options
+      if (currentSearchQuery) {
+        const useSemantic = this.checked;
+        const useContains = containsCheckbox?.checked || false;
+        performPriorityTasksSearch(
+          currentSearchQuery,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
+
+  if (containsCheckbox) {
+    containsCheckbox.addEventListener("change", function () {
+      // If current search exists, re-run it with new options
+      if (currentSearchQuery) {
+        const useSemantic = semanticCheckbox?.checked || false;
+        const useContains = this.checked;
+        performPriorityTasksSearch(
+          currentSearchQuery,
+          useSemantic,
+          useContains
+        );
+      }
     });
   }
 }
 
+// --- Handle Search Bar Input ---
+function handleSearchInput(event) {
+  // Check if Enter key was pressed or search button clicked
+  if (event.key === "Enter" || event.type === "click") {
+    const query =
+      event.target.type === "text"
+        ? event.target.value.trim()
+        : event.target
+            .closest(".input-group")
+            .querySelector("input")
+            .value.trim();
+
+    if (query.length === 0) {
+      // Empty query - return to normal view with current priority filter
+      currentSearchQuery = null;
+      applyPriorityFilter(currentPriorityFilter);
+      return;
+    }
+
+    if (query.length < 2) {
+      displayErrorMessage("Please enter at least 2 characters for search");
+      return;
+    }
+
+    // Get search type preferences
+    const useSemantic =
+      document.getElementById("semanticSearchCheckbox")?.checked || false;
+    const useContains =
+      document.getElementById("containsSearchCheckbox")?.checked || false;
+
+    // Perform search based on selected options
+    performPriorityTasksSearch(query, useSemantic, useContains);
+  }
+}
+
+// --- Enhanced Search Function (supports both semantic and contains search) ---
+async function performPriorityTasksSearch(
+  query,
+  useSemantic = true,
+  useContains = false
+) {
+  try {
+    // Show loading state
+    showLoadingState();
+
+    // Build search URL with parameters (same as labels page)
+    let searchUrl = "/tasks";
+    const params = [];
+
+    if (useSemantic) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+    if (useContains) {
+      params.push(`contains=${encodeURIComponent(query)}`);
+    }
+
+    // If neither option is selected, default to semantic search
+    if (!useSemantic && !useContains) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+
+    if (params.length > 0) {
+      searchUrl += `?${params.join("&")}`;
+    }
+
+    // Send GET request to the backend
+    const searchResults = await apiFetch(searchUrl);
+
+    // Store the current search query for UI state
+    currentSearchQuery = query;
+
+    // Update allTasks with search results for priority filtering
+    allTasks = searchResults || [];
+
+    // Apply current priority filter to search results
+    applyPriorityFilter(currentPriorityFilter);
+
+    // Update search status display
+    updateSearchStatus(true, query);
+  } catch (error) {
+    console.error("Search failed:", error);
+    displayErrorMessage("Search failed. Please try again.");
+
+    // Fall back to regular search
+    filterTasksBySearch(query);
+  }
+}
+
+// --- Fallback Regular Search Function ---
 function filterTasksBySearch(searchTerm) {
-  const taskCards = document.querySelectorAll(".task-card-container");
+  if (!searchTerm) {
+    applyPriorityFilter(currentPriorityFilter);
+    return;
+  }
 
-  taskCards.forEach((card) => {
-    const title =
-      card.querySelector(".card-title")?.textContent.toLowerCase() || "";
-    const description =
-      card.querySelector(".card-text")?.textContent.toLowerCase() || "";
-    const isVisible =
-      title.includes(searchTerm) || description.includes(searchTerm);
+  // Filter allTasks by search term
+  const searchResults = allTasks.filter((task) => {
+    const titleMatch = task.title
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const descriptionMatch =
+      task.description &&
+      task.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const tagsMatch =
+      task.label &&
+      task.label.some((tag) =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
-    card.style.display = isVisible ? "block" : "none";
+    return titleMatch || descriptionMatch || tagsMatch;
   });
+
+  // Apply priority filter to search results
+  const filteredResults =
+    currentPriorityFilter === "all"
+      ? searchResults
+      : searchResults.filter(
+          (task) =>
+            task.priority &&
+            task.priority.toLowerCase() === currentPriorityFilter.toLowerCase()
+        );
+
+  // Render the filtered tasks
+  renderTasks(filteredResults);
 }
 
 // --- Setup Priority Filter Event Listeners ---
@@ -633,11 +936,41 @@ function setupResetFilters() {
   const resetButton = document.getElementById("resetFiltersBtn");
   if (resetButton) {
     resetButton.addEventListener("click", function () {
-      // Click the "All" button to reset filters
+      // Clear search input
+      const searchInput = document.querySelector(".search-bar");
+      if (searchInput) {
+        searchInput.value = "";
+      }
+
+      // Reset search checkboxes to default state
+      const semanticCheckbox = document.getElementById(
+        "semanticSearchCheckbox"
+      );
+      const containsCheckbox = document.getElementById(
+        "containsSearchCheckbox"
+      );
+      if (semanticCheckbox) semanticCheckbox.checked = true; // Default to semantic search
+      if (containsCheckbox) containsCheckbox.checked = false;
+
+      // Reset search state
+      currentSearchQuery = null;
+
+      // Reset priority filter to "all"
+      currentPriorityFilter = "all";
+
+      // Update priority filter buttons
+      const priorityButtons = document.querySelectorAll("[data-priority]");
+      priorityButtons.forEach((btn) => btn.classList.remove("active"));
       const allButton = document.querySelector('[data-priority="all"]');
       if (allButton) {
-        allButton.click();
+        allButton.classList.add("active");
       }
+
+      // Fetch all tasks to reset everything
+      fetchAllTasks();
+
+      // Show success message
+      displaySuccessMessage("Filters reset successfully!");
     });
   }
 }
@@ -654,6 +987,82 @@ function setupLogoutHandler() {
       handleLogout();
     });
   });
+}
+
+// Setup edit task form submission
+function setupEditTaskFormSubmission() {
+  // Get the Update Task button from the edit modal
+  const updateButton = document.querySelector(
+    "#editTaskModal .btn-primary-accent"
+  );
+
+  if (updateButton) {
+    updateButton.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      // Check if we have a task ID stored
+      if (window.currentEditTaskId) {
+        handleEditTaskSubmission(window.currentEditTaskId);
+      } else {
+        displayErrorMessage("No task selected for editing");
+      }
+    });
+  }
+}
+
+// --- Show/Hide Search Status ---
+function updateSearchStatus(isSearchActive, query = null) {
+  let clearSearchBtn = document.getElementById("clearSearchBtn");
+
+  if (isSearchActive && query) {
+    // Create clear search button if it doesn't exist
+    if (!clearSearchBtn) {
+      const searchBar = document.querySelector(".search-bar");
+      if (searchBar) {
+        clearSearchBtn = document.createElement("button");
+        clearSearchBtn.id = "clearSearchBtn";
+        clearSearchBtn.className = "btn btn-sm btn-outline-secondary ms-2";
+        clearSearchBtn.innerHTML =
+          '<i class="bi bi-x-circle me-1"></i>Clear Search';
+        clearSearchBtn.title = "Clear search and return to priority view";
+
+        // Insert after the search input group
+        const inputGroup = searchBar.closest(".input-group");
+        if (inputGroup && inputGroup.parentNode) {
+          inputGroup.parentNode.insertBefore(
+            clearSearchBtn,
+            inputGroup.nextSibling
+          );
+        }
+
+        // Add event listener
+        clearSearchBtn.addEventListener("click", clearSearch);
+      }
+    }
+
+    if (clearSearchBtn) {
+      clearSearchBtn.classList.remove("d-none");
+    }
+  } else {
+    // Hide clear search button
+    if (clearSearchBtn) {
+      clearSearchBtn.classList.add("d-none");
+    }
+  }
+}
+
+// --- Clear Search Function (can be called from UI) ---
+function clearSearch() {
+  const searchInput = document.querySelector(".search-bar");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+  currentSearchQuery = null;
+  updateSearchStatus(false);
+  fetchAllTasks();
+
+  displaySuccessMessage("Search cleared!");
 }
 
 // --- Initialize Priority Page ---
@@ -674,6 +1083,9 @@ function initPriorityPage() {
 
   // Setup logout handler
   setupLogoutHandler();
+
+  // Setup edit task form submission
+  setupEditTaskFormSubmission();
 
   // Set initial filter to "all" and make sure the button is active
   const allButton = document.querySelector('[data-priority="all"]');

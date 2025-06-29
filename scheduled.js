@@ -6,15 +6,13 @@ const API_BASE_URL = "http://localhost:5000";
 // --- Global Variables ---
 let allTasks = []; // Store all tasks for filtering
 let currentTaskData = null; // Store current task data for modal
+let currentSearchQuery = null; // Track current search query for semantic search
 
 // --- Authentication Functions ---
 function checkAuth() {
   const token = localStorage.getItem("token");
   if (!token) {
     console.log("No token found, but continuing for testing purposes");
-    // For testing purposes, don't redirect immediately
-    // window.location.href = "login.html";
-    // return false;
   }
   return true;
 }
@@ -56,11 +54,6 @@ async function apiFetch(endpoint, options = {}) {
     displayErrorMessage(`Network or API error: ${error.message}`);
     throw error;
   }
-}
-
-// --- Date Utility Functions ---
-function getCurrentDate() {
-  return new Date();
 }
 
 function getStartOfWeek(date) {
@@ -137,7 +130,7 @@ function parseTaskDate(dateString) {
 
 // --- Task Filtering Functions ---
 function categorizeTasksBySchedule(tasks) {
-  const now = getCurrentDate();
+  const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const weekStart = getStartOfWeek(now);
@@ -145,23 +138,6 @@ function categorizeTasksBySchedule(tasks) {
 
   const monthStart = getStartOfMonth(now);
   const monthEnd = getEndOfMonth(now);
-
-  console.log("=== DATE RANGE CALCULATIONS ===");
-  console.log("Current date/time:", now.toISOString());
-  console.log("Today (start of day):", todayStart.toDateString());
-  console.log(
-    "Week start (Monday):",
-    weekStart.toDateString(),
-    "to Week end (Sunday):",
-    weekEnd.toDateString()
-  );
-  console.log(
-    "Month start:",
-    monthStart.toDateString(),
-    "to Month end:",
-    monthEnd.toDateString()
-  );
-  console.log("=== TASK CATEGORIZATION (WITH OVERDUE) ===");
 
   const categories = {
     overdue: [],
@@ -173,15 +149,8 @@ function categorizeTasksBySchedule(tasks) {
   tasks.forEach((task) => {
     const taskDate = parseTaskDate(task.dueDate);
 
-    console.log(
-      `Processing task: "${task.title}" with dueDate: "${
-        task.dueDate
-      }" -> parsed: ${taskDate ? taskDate.toDateString() : "null"}`
-    );
-
     // Skip tasks without due dates
     if (!taskDate) {
-      console.log(`Skipping task "${task.title}" - no valid due date`);
       return;
     }
 
@@ -197,66 +166,19 @@ function categorizeTasksBySchedule(tasks) {
 
     // Check if task is overdue (highest priority)
     if (taskDateStart < todayStart) {
-      console.log(
-        `Task "${
-          task.title
-        }" categorized as OVERDUE (due: ${taskDateStart.toDateString()})`
-      );
       categories.overdue.push(task);
-    }
-    // Check if task is due today
-    else if (isSameDate(taskDateStart, todayStart)) {
-      console.log(`Task "${task.title}" categorized as TODAY`);
+    } else if (isSameDate(taskDateStart, todayStart)) {
       categories.today.push(task);
     }
     // Check if task is due this week BUT NOT today
     else if (isDateInRange(taskDateStart, weekStart, weekEnd)) {
-      console.log(
-        `Task "${
-          task.title
-        }" categorized as THIS WEEK (due: ${taskDateStart.toDateString()})`
-      );
       categories.thisWeek.push(task);
     }
     // Check if task is due this month BUT NOT this week
     else if (isDateInRange(taskDateStart, monthStart, monthEnd)) {
-      console.log(
-        `Task "${
-          task.title
-        }" categorized as THIS MONTH (due: ${taskDateStart.toDateString()})`
-      );
       categories.thisMonth.push(task);
     }
-    // Task doesn't fit in any category (future months)
-    else {
-      console.log(
-        `Task "${
-          task.title
-        }" does not fit in any category (due: ${taskDateStart.toDateString()})`
-      );
-    }
   });
-
-  console.log("=== CATEGORIZATION RESULTS (WITH OVERDUE) ===");
-  console.log("Overdue:", categories.overdue.length, "tasks");
-  console.log("Today:", categories.today.length, "tasks");
-  console.log(
-    "This Week (excluding today):",
-    categories.thisWeek.length,
-    "tasks"
-  );
-  console.log(
-    "This Month (excluding this week):",
-    categories.thisMonth.length,
-    "tasks"
-  );
-  console.log(
-    "Total categorized tasks:",
-    categories.overdue.length +
-      categories.today.length +
-      categories.thisWeek.length +
-      categories.thisMonth.length
-  );
 
   return categories;
 }
@@ -362,21 +284,21 @@ function createTaskCard(task, isOverdue = false) {
 
   // Edit icon
   const editIcon = document.createElement("i");
-  editIcon.className = "bi bi-pencil action-icon";
+  editIcon.className = "action-icon text-info bi bi-pencil";
   editIcon.title = "Edit Task";
   editIcon.setAttribute("data-bs-toggle", "tooltip");
   editIcon.setAttribute("data-bs-placement", "top");
 
   // Archive icon
   const archiveIcon = document.createElement("i");
-  archiveIcon.className = "bi bi-archive action-icon";
+  archiveIcon.className = "action-icon text-warning bi bi-archive";
   archiveIcon.title = "Archive Task";
   archiveIcon.setAttribute("data-bs-toggle", "tooltip");
   archiveIcon.setAttribute("data-bs-placement", "top");
 
   // Delete icon
   const deleteIcon = document.createElement("i");
-  deleteIcon.className = "bi bi-trash action-icon";
+  deleteIcon.className = "action-icon text-danger bi bi-trash";
   deleteIcon.title = "Delete Task";
   deleteIcon.setAttribute("data-bs-toggle", "tooltip");
   deleteIcon.setAttribute("data-bs-placement", "top");
@@ -574,19 +496,19 @@ async function loadScheduledTasks() {
 
     allTasks = tasks || [];
 
+    // Reset search state when loading all tasks
+    currentSearchQuery = null;
+    updateSearchStatus(false);
+
     // Filter tasks that have due dates and are not completed
     const scheduledTasks = allTasks.filter((task) => {
       // Check if task has required properties
       if (!task || typeof task !== "object") {
-        console.warn("Invalid task object:", task);
         return false;
       }
 
       // Check if task has dueDate
       if (!task.dueDate) {
-        console.log(
-          `Task "${task.title || "unnamed"}" has no dueDate, skipping`
-        );
         return false;
       }
 
@@ -596,7 +518,6 @@ async function loadScheduledTasks() {
         task.completed === "true" ||
         task.completed === 1;
       if (isCompleted) {
-        console.log(`Task "${task.title}" is completed, skipping`);
         return false;
       }
 
@@ -604,19 +525,9 @@ async function loadScheduledTasks() {
     });
 
     console.log("Filtered scheduled tasks:", scheduledTasks);
-    console.log(
-      "All tasks for debugging:",
-      allTasks.map((t) => ({
-        title: t.title,
-        dueDate: t.dueDate,
-        completed: t.completed,
-        _id: t._id,
-      }))
-    );
 
     // Categorize tasks by schedule
     const categorizedTasks = categorizeTasksBySchedule(scheduledTasks);
-    console.log("Categorized tasks:", categorizedTasks);
 
     // Render tasks in their respective sections
     renderTasksInSection("overdueSection", categorizedTasks.overdue, "Overdue");
@@ -640,23 +551,12 @@ async function loadScheduledTasks() {
 
     console.log("Total scheduled tasks:", totalScheduledTasks);
 
-    if (totalScheduledTasks === 0) {
-      // For debugging: show a message about available tasks
-      if (allTasks.length > 0) {
-        displayErrorMessage(
-          `Found ${allTasks.length} total tasks, but none are scheduled for today/this week/this month. Check console for details.`
-        );
-      }
-      showEmptyScheduledTasks();
-    } else {
-      hideEmptyScheduledTasks();
-    }
+    // Note: Empty state handling removed per user request
   } catch (error) {
     console.error("Failed to load scheduled tasks:", error);
     hideLoadingState();
 
-    // Show empty state instead of mock data
-    showEmptyState();
+    // Note: Empty state handling removed per user request
     displayErrorMessage(
       "Could not connect to server. Please check your connection and try again."
     );
@@ -671,20 +571,6 @@ function showLoadingState() {
 
 function hideLoadingState() {
   console.log("Finished loading scheduled tasks.");
-}
-
-function showEmptyScheduledTasks() {
-  const emptyState = document.getElementById("emptyScheduledTasks");
-  if (emptyState) {
-    emptyState.classList.remove("d-none");
-  }
-}
-
-function hideEmptyScheduledTasks() {
-  const emptyState = document.getElementById("emptyScheduledTasks");
-  if (emptyState) {
-    emptyState.classList.add("d-none");
-  }
 }
 
 // --- Modal Functions ---
@@ -927,19 +813,184 @@ async function handleDeleteTaskAction(card) {
 // --- Search Functionality ---
 function setupSearchFunctionality() {
   const searchInput = document.querySelector(".search-bar");
+  const searchButton = document.querySelector(
+    ".btn-primary-accent[type='button']"
+  );
+
   if (!searchInput) return;
 
-  let searchTimeout;
+  // Handle Enter key press for search
+  searchInput.addEventListener("keypress", handleSearchInput);
 
-  searchInput.addEventListener("input", function (e) {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      const query = e.target.value.trim().toLowerCase();
-      filterTasksBySearch(query);
-    }, 300); // Debounce search
-  });
+  if (searchButton) {
+    // Handle search button click
+    searchButton.addEventListener("click", handleSearchInput);
+  }
+
+  // Set up event listeners for search checkboxes
+  const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
+  const containsCheckbox = document.getElementById("containsSearchCheckbox");
+
+  if (semanticCheckbox) {
+    semanticCheckbox.addEventListener("change", function () {
+      // If current search exists, re-run it with new options
+      if (currentSearchQuery) {
+        const useSemantic = this.checked;
+        const useContains = containsCheckbox?.checked || false;
+        performScheduledTasksSearch(
+          currentSearchQuery,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
+
+  if (containsCheckbox) {
+    containsCheckbox.addEventListener("change", function () {
+      // If current search exists, re-run it with new options
+      if (currentSearchQuery) {
+        const useSemantic = semanticCheckbox?.checked || false;
+        const useContains = this.checked;
+        performScheduledTasksSearch(
+          currentSearchQuery,
+          useSemantic,
+          useContains
+        );
+      }
+    });
+  }
 }
 
+// --- Handle Search Bar Input ---
+function handleSearchInput(event) {
+  // Check if Enter key was pressed or search button clicked
+  if (event.key === "Enter" || event.type === "click") {
+    const query =
+      event.target.type === "text"
+        ? event.target.value.trim()
+        : event.target
+            .closest(".input-group")
+            .querySelector("input")
+            .value.trim();
+
+    if (query.length === 0) {
+      // Empty query - return to normal view
+      currentSearchQuery = null;
+      updateSearchStatus(false);
+      loadScheduledTasks();
+      return;
+    }
+
+    if (query.length < 2) {
+      displayErrorMessage("Please enter at least 2 characters for search");
+      return;
+    }
+
+    // Get search type preferences
+    const useSemantic =
+      document.getElementById("semanticSearchCheckbox")?.checked || false;
+    const useContains =
+      document.getElementById("containsSearchCheckbox")?.checked || false;
+
+    // Perform search based on selected options
+    performScheduledTasksSearch(query, useSemantic, useContains);
+  }
+}
+
+// --- Enhanced Search Function (supports both semantic and contains search) ---
+async function performScheduledTasksSearch(
+  query,
+  useSemantic = true,
+  useContains = false
+) {
+  try {
+    console.log(
+      `Performing search for "${query}" - Semantic: ${useSemantic}, Contains: ${useContains}`
+    );
+
+    // Show loading state
+    showLoadingState();
+
+    // Build search URL with parameters (same as labels page)
+    let searchUrl = "/tasks";
+    const params = [];
+
+    if (useSemantic) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+    if (useContains) {
+      params.push(`contains=${encodeURIComponent(query)}`);
+    }
+
+    // If neither option is selected, default to semantic search
+    if (!useSemantic && !useContains) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+
+    if (params.length > 0) {
+      searchUrl += `?${params.join("&")}`;
+    }
+
+    console.log("Search URL:", searchUrl);
+
+    // Send GET request to the backend
+    const searchResults = await apiFetch(searchUrl);
+    console.log(`Search returned ${searchResults.length} total results`);
+
+    // Filter for scheduled tasks (tasks with due dates and not completed)
+    const scheduledSearchResults = searchResults.filter((task) => {
+      return (
+        task.dueDate &&
+        task.completed !== true &&
+        task.completed !== "true" &&
+        task.completed !== 1
+      );
+    });
+
+    console.log(
+      `Filtered to ${scheduledSearchResults.length} scheduled search results`
+    );
+
+    // Store the current search query for UI state
+    currentSearchQuery = query;
+    updateSearchStatus(true, query);
+
+    // Categorize search results by schedule
+    const categorizedTasks = categorizeTasksBySchedule(scheduledSearchResults);
+
+    // Render search results
+    renderTasksInSection("overdueSection", categorizedTasks.overdue, "Overdue");
+    renderTasksInSection("todaySection", categorizedTasks.today, "Today");
+    renderTasksInSection("weekSection", categorizedTasks.thisWeek, "This Week");
+    renderTasksInSection(
+      "monthSection",
+      categorizedTasks.thisMonth,
+      "This Month"
+    );
+
+    // Hide loading state
+    hideLoadingState();
+
+    // Show/hide empty state based on total results
+    const totalResults =
+      categorizedTasks.overdue.length +
+      categorizedTasks.today.length +
+      categorizedTasks.thisWeek.length +
+      categorizedTasks.thisMonth.length;
+
+    // Note: Empty state handling removed per user request
+  } catch (error) {
+    console.error("Search failed:", error);
+    displayErrorMessage("Search failed. Please try again.");
+    hideLoadingState();
+
+    // Fall back to regular search
+    filterTasksBySearch(query);
+  }
+}
+
+// --- Fallback Regular Search Function ---
 function filterTasksBySearch(query) {
   if (!query) {
     loadScheduledTasks(); // Reset to show all tasks
@@ -978,6 +1029,61 @@ function filterTasksBySearch(query) {
     categorizedTasks.thisMonth,
     "This Month"
   );
+}
+
+// --- Show/Hide Search Status ---
+function updateSearchStatus(isSearchActive, query = null) {
+  let clearSearchBtn = document.getElementById("clearSearchBtn");
+
+  if (isSearchActive && query) {
+    // Create clear search button if it doesn't exist
+    if (!clearSearchBtn) {
+      const searchBar = document.querySelector(".search-bar");
+      if (searchBar) {
+        clearSearchBtn = document.createElement("button");
+        clearSearchBtn.id = "clearSearchBtn";
+        clearSearchBtn.className = "btn btn-sm btn-outline-secondary ms-2";
+        clearSearchBtn.innerHTML =
+          '<i class="bi bi-x-circle me-1"></i>Clear Search';
+        clearSearchBtn.title = "Clear search and return to scheduled view";
+
+        // Insert after the search input group
+        const inputGroup = searchBar.closest(".input-group");
+        if (inputGroup && inputGroup.parentNode) {
+          inputGroup.parentNode.insertBefore(
+            clearSearchBtn,
+            inputGroup.nextSibling
+          );
+        }
+
+        // Add event listener
+        clearSearchBtn.addEventListener("click", clearSearch);
+      }
+    }
+
+    if (clearSearchBtn) {
+      clearSearchBtn.classList.remove("d-none");
+    }
+  } else {
+    // Hide clear search button
+    if (clearSearchBtn) {
+      clearSearchBtn.classList.add("d-none");
+    }
+  }
+}
+
+// --- Clear Search Function ---
+function clearSearch() {
+  const searchInput = document.querySelector(".search-bar");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+  currentSearchQuery = null;
+  updateSearchStatus(false);
+  loadScheduledTasks();
+
+  displaySuccessMessage("Search cleared!");
 }
 
 // --- Utility Functions ---
@@ -1042,6 +1148,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Setup search functionality
   setupSearchFunctionality();
+
+  // Set up edit form
+  setupEditTaskForm();
 
   // Add global event listener for action icons (including hardcoded HTML)
   document.addEventListener("click", function (e) {
@@ -1215,14 +1324,11 @@ async function updateTask(taskId, taskData) {
 
     console.log("Task updated successfully:", updatedTask);
 
-    // Update the task card in the UI
-    updateTaskCardInUI(taskId, taskData);
-
     // Show success message
     displaySuccessMessage("Task updated successfully!");
 
-    // Refresh tasks to get latest data (same pattern as dashboard)
-    loadScheduledTasks();
+    // Refresh tasks to get latest data
+    await loadScheduledTasks();
 
     return updatedTask;
   } catch (error) {
@@ -1231,67 +1337,3 @@ async function updateTask(taskId, taskData) {
     throw error;
   }
 }
-
-function updateTaskCardInUI(taskId, updatedData) {
-  const taskCard = document.querySelector(
-    `.task-card[data-task-id="${taskId}"]`
-  );
-  if (!taskCard) {
-    console.log("Task card not found for update");
-    return;
-  }
-
-  // Update card data attributes
-  taskCard.dataset.title = updatedData.title;
-  taskCard.dataset.description = updatedData.description;
-  taskCard.dataset.dueDate = updatedData.dueDate;
-  taskCard.dataset.priority = updatedData.priority;
-  // Convert tags array back to comma-separated string for data attribute
-  taskCard.dataset.tags = Array.isArray(updatedData.label)
-    ? updatedData.label.join(",")
-    : updatedData.tags || "";
-
-  // Update visible elements
-  const titleElement = taskCard.querySelector(".card-title");
-  const descriptionElement = taskCard.querySelector(".card-text");
-  const priorityBadge = taskCard.querySelector('.badge[class*="priority-"]');
-  const tagsContainer = taskCard.querySelector(".d-flex.flex-wrap.gap-2");
-
-  if (titleElement) titleElement.textContent = updatedData.title;
-  if (descriptionElement)
-    descriptionElement.textContent = updatedData.description;
-
-  // Update priority badge
-  if (priorityBadge) {
-    const priorityLower = updatedData.priority.toLowerCase();
-    priorityBadge.className = `badge priority-${priorityLower}`;
-    priorityBadge.textContent = updatedData.priority;
-  }
-
-  // Update tags
-  if (tagsContainer) {
-    const tagsArray = Array.isArray(updatedData.label)
-      ? updatedData.label
-      : updatedData.tags
-      ? updatedData.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag)
-      : [];
-    tagsContainer.innerHTML = "";
-    tagsArray.forEach((tag) => {
-      const tagElement = document.createElement("span");
-      tagElement.className = "badge bg-secondary";
-      tagElement.textContent = tag;
-      tagsContainer.appendChild(tagElement);
-    });
-  }
-
-  console.log("Task card UI updated");
-}
-
-// --- Initialize Edit Modal Event Handlers ---
-document.addEventListener("DOMContentLoaded", function () {
-  // Set up edit form (same pattern as dashboard)
-  setupEditTaskForm();
-});
