@@ -6,6 +6,8 @@ const API_BASE_URL = "http://localhost:5000";
 // --- Global Variables ---
 let editItem = null;
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
+let allTasks = []; // Store all tasks for filtering
+let currentSearchQuery = null; // Track current search query
 
 // --- Authentication Functions ---
 function checkAuth() {
@@ -73,6 +75,13 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
     }
 
     const tasks = await apiFetch(endpoint);
+
+    // Store tasks globally for search functionality
+    if (endpoint === "/tasks") {
+      allTasks = tasks || [];
+      currentSearchQuery = null;
+      updateSearchStatus(false);
+    }
 
     if (tasks && tasks.length > 0) {
       tasks.forEach((task) => {
@@ -549,16 +558,236 @@ async function updateTask(taskId, updates) {
   }
 }
 
-// --- Search Functionality ---
+// --- Enhanced Search Functionality ---
 function handleSearch() {
   const searchInput = document.querySelector(".search-bar");
   if (!searchInput) return;
 
   const searchTerm = searchInput.value.trim();
-  const endpoint = searchTerm
-    ? `/tasks?contains=${encodeURIComponent(searchTerm)}`
-    : "/tasks";
-  loadTasksFromAPI(endpoint);
+
+  if (searchTerm.length === 0) {
+    // Empty query - return to normal view
+    currentSearchQuery = null;
+    updateSearchStatus(false);
+    loadTasksFromAPI();
+    return;
+  }
+
+  if (searchTerm.length < 2) {
+    displayErrorMessage("Please enter at least 2 characters for search");
+    return;
+  }
+
+  // Get search type preferences
+  const useSemantic =
+    document.getElementById("semanticSearchCheckbox")?.checked || false;
+  const useContains =
+    document.getElementById("containsSearchCheckbox")?.checked || false;
+
+  // Perform search based on selected options
+  performTaskSearch(searchTerm, useSemantic, useContains);
+}
+
+// --- Enhanced Search Function (supports both semantic and contains search) ---
+async function performTaskSearch(
+  query,
+  useSemantic = true,
+  useContains = false
+) {
+  try {
+    console.log(
+      `Performing search for "${query}" - Semantic: ${useSemantic}, Contains: ${useContains}`
+    );
+
+    // Build search URL with parameters
+    let searchUrl = "/tasks";
+    const params = [];
+
+    if (useSemantic) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+    if (useContains) {
+      params.push(`contains=${encodeURIComponent(query)}`);
+    }
+
+    // If neither option is selected, default to semantic search
+    if (!useSemantic && !useContains) {
+      params.push(`q=${encodeURIComponent(query)}`);
+    }
+
+    if (params.length > 0) {
+      searchUrl += `?${params.join("&")}`;
+    }
+
+    console.log("Search URL:", searchUrl);
+
+    // Send GET request to the backend
+    const searchResults = await apiFetch(searchUrl);
+    console.log(`Search returned ${searchResults.length} results`);
+
+    // Store the current search query for UI state
+    currentSearchQuery = query;
+    updateSearchStatus(true, query);
+
+    // Render search results
+    renderTasks(searchResults);
+  } catch (error) {
+    console.error("Search failed:", error);
+    displayErrorMessage("Search failed. Please try again.");
+
+    // Fall back to regular search
+    filterTasksBySearch(query);
+  }
+}
+
+// --- Fallback Regular Search Function ---
+function filterTasksBySearch(query) {
+  if (!query) {
+    loadTasksFromAPI(); // Reset to show all tasks
+    return;
+  }
+
+  // Filter tasks that match the search query
+  const filteredTasks = allTasks.filter((task) => {
+    const titleMatch = task.title.toLowerCase().includes(query.toLowerCase());
+    const descriptionMatch =
+      task.description &&
+      task.description.toLowerCase().includes(query.toLowerCase());
+    const tagsMatch =
+      task.label &&
+      task.label.some((tag) => tag.toLowerCase().includes(query.toLowerCase()));
+
+    return titleMatch || descriptionMatch || tagsMatch;
+  });
+
+  // Store the current search query
+  currentSearchQuery = query;
+  updateSearchStatus(true, query);
+
+  // Render filtered tasks
+  renderTasks(filteredTasks);
+}
+
+// --- Render Tasks (unified function for both normal loading and search results) ---
+function renderTasks(tasks) {
+  const taskContainer = document.getElementById("taskList");
+
+  // Clear existing tasks
+  taskContainer.innerHTML = "";
+
+  if (tasks.length === 0) {
+    // Show empty state for no results
+    showEmptySearchState();
+  } else {
+    // Render each task
+    tasks.forEach((task) => {
+      const taskCard = createTaskCard(task);
+      taskContainer.appendChild(taskCard);
+    });
+  }
+
+  // Update task counter
+  updateTaskCounter(tasks.length);
+}
+
+// --- Show Empty Search State ---
+function showEmptySearchState() {
+  const taskContainer = document.getElementById("taskList");
+  const emptyDiv = document.createElement("div");
+  emptyDiv.className = "col-12";
+  emptyDiv.innerHTML = `
+    <div class="text-center py-5">
+      <i class="bi bi-search text-muted" style="font-size: 4rem"></i>
+      <h3 class="mt-3 text-muted">No Results Found</h3>
+      <p class="text-muted">No tasks match your search query.</p>
+      <button class="btn btn-outline-secondary mt-3" onclick="clearSearch()">
+        <i class="bi bi-x-circle me-2"></i>Clear Search
+      </button>
+    </div>
+  `;
+  taskContainer.appendChild(emptyDiv);
+}
+
+// --- Show/Hide Search Status ---
+function updateSearchStatus(isSearchActive, query = null) {
+  let clearSearchBtn = document.getElementById("clearSearchBtn");
+
+  if (isSearchActive && query) {
+    if (clearSearchBtn) {
+      clearSearchBtn.style.display = "inline-block";
+    }
+  } else {
+    // Hide clear search button
+    if (clearSearchBtn) {
+      clearSearchBtn.style.display = "none";
+    }
+  }
+}
+
+// --- Clear Search Function ---
+function clearSearch() {
+  const searchInput = document.querySelector(".search-bar");
+  if (searchInput) {
+    searchInput.value = "";
+  }
+
+  currentSearchQuery = null;
+  updateSearchStatus(false);
+  loadTasksFromAPI();
+
+  displaySuccessMessage("Search cleared!");
+}
+
+// --- Setup Search Functionality ---
+function setupSearchFunctionality() {
+  const searchInput = document.querySelector(".search-bar");
+  const searchButton = document.querySelector(
+    ".btn-primary-accent[type='button']"
+  );
+
+  if (!searchInput) return;
+
+  // Handle Enter key press for search
+  searchInput.addEventListener("keypress", function (event) {
+    if (event.key === "Enter") {
+      handleSearch();
+    }
+  });
+
+  if (searchButton) {
+    // Handle search button click
+    searchButton.addEventListener("click", handleSearch);
+  }
+
+  // Set up event listeners for search checkboxes
+  const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
+  const containsCheckbox = document.getElementById("containsSearchCheckbox");
+
+  if (semanticCheckbox) {
+    semanticCheckbox.addEventListener("change", function () {
+      if (currentSearchQuery) {
+        const useSemantic = this.checked;
+        const useContains = containsCheckbox?.checked || false;
+        performTaskSearch(currentSearchQuery, useSemantic, useContains);
+      }
+    });
+  }
+
+  if (containsCheckbox) {
+    containsCheckbox.addEventListener("change", function () {
+      if (currentSearchQuery) {
+        const useSemantic = semanticCheckbox?.checked || false;
+        const useContains = this.checked;
+        performTaskSearch(currentSearchQuery, useSemantic, useContains);
+      }
+    });
+  }
+
+  // Setup clear search button
+  const clearSearchBtn = document.getElementById("clearSearchBtn");
+  if (clearSearchBtn) {
+    clearSearchBtn.addEventListener("click", clearSearch);
+  }
 }
 
 // --- Message Display Functions ---
@@ -616,9 +845,8 @@ function initDashboard() {
   const taskList = document.getElementById("taskList");
   if (taskList) taskList.addEventListener("click", handleTaskActions);
 
-  const searchInput = document.querySelector(".search-bar");
-  if (searchInput)
-    searchInput.addEventListener("input", debounce(handleSearch, 300));
+  // Setup enhanced search functionality
+  setupSearchFunctionality();
 
   setupLogoutHandler();
   displayUserInfo();
@@ -672,7 +900,7 @@ function setupTaskForm() {
       // Merge old and new attachments
       taskData.attachment = [
         ...(editExistingAttachments || []),
-        ...(uploadedUrls || [])
+        ...(uploadedUrls || []),
       ];
 
       if (editItem) {
@@ -876,54 +1104,103 @@ function populateTaskDetailsModal(taskData) {
       .split(",")
       .filter((att) => att.trim());
     attachments.forEach((attachment) => {
-      const div = document.createElement('div');
-      div.className = 'attachment-item mb-2 p-2 border rounded';
-      div.style.backgroundColor = 'var(--background-color)';
-      
-      const fileIcon = document.createElement('i');
-      fileIcon.className = `bi ${getFileIcon(attachment.split('.').pop()?.toLowerCase())} me-2`;
-      fileIcon.style.color = 'var(--text-color)';
-      
-      const fileNameSpan = document.createElement('span');
-      fileNameSpan.className = 'attachment-filename';
-      fileNameSpan.textContent = attachment.split('/').pop();
-      
+      const div = document.createElement("div");
+      div.className = "attachment-item mb-2 p-2 border rounded";
+      div.style.backgroundColor = "var(--background-color)";
+
+      const fileIcon = document.createElement("i");
+      fileIcon.className = `bi ${getFileIcon(
+        attachment.split(".").pop()?.toLowerCase()
+      )} me-2`;
+      fileIcon.style.color = "var(--text-color)";
+
+      const fileNameSpan = document.createElement("span");
+      fileNameSpan.className = "attachment-filename";
+      fileNameSpan.textContent = attachment.split("/").pop();
+
       const viewableExtensions = [
-        'pdf', 'txt', 'html', 'htm', 'css', 'js', 'json', 'xml', 'csv', 'md',
-        'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico',
-        'mp3', 'wav', 'ogg', 'mp4', 'webm',
-        'py', 'java', 'cpp', 'c', 'php', 'rb', 'go', 'rs', 'swift', 'kt',
-        'yaml', 'yml', 'toml', 'ini', 'conf', 'log',
-        'woff', 'woff2', 'ttf', 'eot'
+        "pdf",
+        "txt",
+        "html",
+        "htm",
+        "css",
+        "js",
+        "json",
+        "xml",
+        "csv",
+        "md",
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "svg",
+        "webp",
+        "bmp",
+        "ico",
+        "mp3",
+        "wav",
+        "ogg",
+        "mp4",
+        "webm",
+        "py",
+        "java",
+        "cpp",
+        "c",
+        "php",
+        "rb",
+        "go",
+        "rs",
+        "swift",
+        "kt",
+        "yaml",
+        "yml",
+        "toml",
+        "ini",
+        "conf",
+        "log",
+        "woff",
+        "woff2",
+        "ttf",
+        "eot",
       ];
-      const fileExtension = attachment.split('.').pop()?.toLowerCase();
+      const fileExtension = attachment.split(".").pop()?.toLowerCase();
       const canView = viewableExtensions.includes(fileExtension);
-      const fullUrl = attachment.startsWith('/uploads/') ? `${API_BASE_URL}${attachment}` : attachment;
+      const fullUrl = attachment.startsWith("/uploads/")
+        ? `${API_BASE_URL}${attachment}`
+        : attachment;
 
       let viewBtn = null;
       if (canView) {
-        viewBtn = document.createElement('a');
-        viewBtn.href = '#';
-        viewBtn.className = 'btn btn-sm btn-primary me-2';
+        viewBtn = document.createElement("a");
+        viewBtn.href = "#";
+        viewBtn.className = "btn btn-sm btn-primary me-2";
         viewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>View';
         viewBtn.title = getFileTypeInfo(fileExtension);
         viewBtn.onclick = (e) => {
           e.preventDefault();
-          if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(fileExtension)) {
+          if (
+            ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(
+              fileExtension
+            )
+          ) {
             showImagePreview(fullUrl, fileNameSpan.textContent);
-          } else if (['mp3', 'wav', 'ogg', 'mp4', 'webm'].includes(fileExtension)) {
+          } else if (
+            ["mp3", "wav", "ogg", "mp4", "webm"].includes(fileExtension)
+          ) {
             showMediaPreview(fullUrl, fileNameSpan.textContent, fileExtension);
           } else {
-            window.open(fullUrl, '_blank');
+            window.open(fullUrl, "_blank");
           }
         };
       }
-      const downloadBtn = document.createElement('a');
+      const downloadBtn = document.createElement("a");
       downloadBtn.href = fullUrl;
       downloadBtn.download = fileNameSpan.textContent;
-      downloadBtn.className = 'btn btn-sm btn-outline-secondary me-2';
+      downloadBtn.className = "btn btn-sm btn-outline-secondary me-2";
       downloadBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
-      downloadBtn.title = `Download ${fileNameSpan.textContent} (${getFileTypeInfo(fileExtension)})`;
+      downloadBtn.title = `Download ${
+        fileNameSpan.textContent
+      } (${getFileTypeInfo(fileExtension)})`;
 
       div.appendChild(fileIcon);
       div.appendChild(fileNameSpan);
@@ -1055,19 +1332,29 @@ function setupAttachmentHandling() {
   const fileInput = document.getElementById("taskAttachment");
   const attachmentContainer = document.getElementById("attachmentContainer");
   const editFileInput = document.getElementById("editTaskAttachment");
-  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
+  const editAttachmentContainer = document.getElementById(
+    "editAttachmentContainer"
+  );
 
   if (fileInput && attachmentContainer) {
-    fileInput.addEventListener('change', function() {
+    fileInput.addEventListener("change", function () {
       selectedFiles = Array.from(fileInput.files);
-      renderAttachmentList(attachmentContainer, selectedFiles, editExistingAttachments);
+      renderAttachmentList(
+        attachmentContainer,
+        selectedFiles,
+        editExistingAttachments
+      );
     });
   }
 
   if (editFileInput && editAttachmentContainer) {
-    editFileInput.addEventListener('change', function() {
+    editFileInput.addEventListener("change", function () {
       selectedFiles = Array.from(editFileInput.files);
-      renderAttachmentList(editAttachmentContainer, selectedFiles, editExistingAttachments);
+      renderAttachmentList(
+        editAttachmentContainer,
+        selectedFiles,
+        editExistingAttachments
+      );
     });
   }
 }
@@ -1076,165 +1363,215 @@ function setupAttachmentHandling() {
 function getFileTypeInfo(fileExtension) {
   const fileTypeInfo = {
     // Viewable files
-    'pdf': 'PDF Document - Viewable in browser',
-    'txt': 'Text File - Viewable in browser',
-    'html': 'HTML File - Viewable in browser',
-    'css': 'CSS File - Viewable in browser',
-    'js': 'JavaScript File - Viewable in browser',
-    'json': 'JSON Data - Viewable in browser',
-    'xml': 'XML Data - Viewable in browser',
-    'csv': 'CSV Data - Viewable in browser',
-    'md': 'Markdown File - Viewable in browser',
-    
+    pdf: "PDF Document - Viewable in browser",
+    txt: "Text File - Viewable in browser",
+    html: "HTML File - Viewable in browser",
+    css: "CSS File - Viewable in browser",
+    js: "JavaScript File - Viewable in browser",
+    json: "JSON Data - Viewable in browser",
+    xml: "XML Data - Viewable in browser",
+    csv: "CSV Data - Viewable in browser",
+    md: "Markdown File - Viewable in browser",
+
     // Images
-    'jpg': 'JPEG Image - Viewable in browser',
-    'jpeg': 'JPEG Image - Viewable in browser',
-    'png': 'PNG Image - Viewable in browser',
-    'gif': 'GIF Image - Viewable in browser',
-    'svg': 'SVG Image - Viewable in browser',
-    'webp': 'WebP Image - Viewable in browser',
-    'bmp': 'BMP Image - Viewable in browser',
-    'ico': 'Icon File - Viewable in browser',
-    
+    jpg: "JPEG Image - Viewable in browser",
+    jpeg: "JPEG Image - Viewable in browser",
+    png: "PNG Image - Viewable in browser",
+    gif: "GIF Image - Viewable in browser",
+    svg: "SVG Image - Viewable in browser",
+    webp: "WebP Image - Viewable in browser",
+    bmp: "BMP Image - Viewable in browser",
+    ico: "Icon File - Viewable in browser",
+
     // Media files
-    'mp3': 'Audio File - Playable in browser',
-    'wav': 'Audio File - Playable in browser',
-    'ogg': 'Audio/Video File - Playable in browser',
-    'mp4': 'Video File - Playable in browser',
-    'webm': 'Video File - Playable in browser',
-    
+    mp3: "Audio File - Playable in browser",
+    wav: "Audio File - Playable in browser",
+    ogg: "Audio/Video File - Playable in browser",
+    mp4: "Video File - Playable in browser",
+    webm: "Video File - Playable in browser",
+
     // Code files
-    'py': 'Python Code - Viewable in browser',
-    'java': 'Java Code - Viewable in browser',
-    'cpp': 'C++ Code - Viewable in browser',
-    'c': 'C Code - Viewable in browser',
-    'php': 'PHP Code - Viewable in browser',
-    'rb': 'Ruby Code - Viewable in browser',
-    'go': 'Go Code - Viewable in browser',
-    'rs': 'Rust Code - Viewable in browser',
-    'swift': 'Swift Code - Viewable in browser',
-    'kt': 'Kotlin Code - Viewable in browser',
-    
+    py: "Python Code - Viewable in browser",
+    java: "Java Code - Viewable in browser",
+    cpp: "C++ Code - Viewable in browser",
+    c: "C Code - Viewable in browser",
+    php: "PHP Code - Viewable in browser",
+    rb: "Ruby Code - Viewable in browser",
+    go: "Go Code - Viewable in browser",
+    rs: "Rust Code - Viewable in browser",
+    swift: "Swift Code - Viewable in browser",
+    kt: "Kotlin Code - Viewable in browser",
+
     // Data files
-    'yaml': 'YAML Data - Viewable in browser',
-    'yml': 'YAML Data - Viewable in browser',
-    'toml': 'TOML Data - Viewable in browser',
-    'ini': 'INI Config - Viewable in browser',
-    'conf': 'Config File - Viewable in browser',
-    'log': 'Log File - Viewable in browser',
-    
+    yaml: "YAML Data - Viewable in browser",
+    yml: "YAML Data - Viewable in browser",
+    toml: "TOML Data - Viewable in browser",
+    ini: "INI Config - Viewable in browser",
+    conf: "Config File - Viewable in browser",
+    log: "Log File - Viewable in browser",
+
     // Non-viewable files
-    'doc': 'Word Document - Requires Microsoft Word or similar',
-    'docx': 'Word Document - Requires Microsoft Word or similar',
-    'xls': 'Excel Spreadsheet - Requires Microsoft Excel or similar',
-    'xlsx': 'Excel Spreadsheet - Requires Microsoft Excel or similar',
-    'ppt': 'PowerPoint Presentation - Requires Microsoft PowerPoint or similar',
-    'pptx': 'PowerPoint Presentation - Requires Microsoft PowerPoint or similar',
-    'zip': 'Archive File - Requires extraction software',
-    'rar': 'Archive File - Requires extraction software',
-    'exe': 'Executable File - Cannot be viewed in browser for security',
-    'app': 'Application File - Cannot be viewed in browser for security'
+    doc: "Word Document - Requires Microsoft Word or similar",
+    docx: "Word Document - Requires Microsoft Word or similar",
+    xls: "Excel Spreadsheet - Requires Microsoft Excel or similar",
+    xlsx: "Excel Spreadsheet - Requires Microsoft Excel or similar",
+    ppt: "PowerPoint Presentation - Requires Microsoft PowerPoint or similar",
+    pptx: "PowerPoint Presentation - Requires Microsoft PowerPoint or similar",
+    zip: "Archive File - Requires extraction software",
+    rar: "Archive File - Requires extraction software",
+    exe: "Executable File - Cannot be viewed in browser for security",
+    app: "Application File - Cannot be viewed in browser for security",
   };
-  
-  return fileTypeInfo[fileExtension] || `Unknown file type (.${fileExtension}) - May not be viewable`;
+
+  return (
+    fileTypeInfo[fileExtension] ||
+    `Unknown file type (.${fileExtension}) - May not be viewable`
+  );
 }
 
 // Get file type icon based on extension
 function getFileIcon(fileExtension) {
   const iconMap = {
-    'pdf': 'bi-file-earmark-pdf',
-    'doc': 'bi-file-earmark-word',
-    'docx': 'bi-file-earmark-word',
-    'xls': 'bi-file-earmark-excel',
-    'xlsx': 'bi-file-earmark-excel',
-    'ppt': 'bi-file-earmark-ppt',
-    'pptx': 'bi-file-earmark-ppt',
-    'txt': 'bi-file-earmark-text',
-    'jpg': 'bi-file-earmark-image',
-    'jpeg': 'bi-file-earmark-image',
-    'png': 'bi-file-earmark-image',
-    'gif': 'bi-file-earmark-image',
-    'svg': 'bi-file-earmark-image',
-    'mp4': 'bi-file-earmark-play',
-    'avi': 'bi-file-earmark-play',
-    'mov': 'bi-file-earmark-play',
-    'mp3': 'bi-file-earmark-music',
-    'wav': 'bi-file-earmark-music',
-    'zip': 'bi-file-earmark-zip',
-    'rar': 'bi-file-earmark-zip',
-    'html': 'bi-file-earmark-code',
-    'htm': 'bi-file-earmark-code',
-    'css': 'bi-file-earmark-code',
-    'js': 'bi-file-earmark-code',
-    'json': 'bi-file-earmark-code',
-    'xml': 'bi-file-earmark-code',
-    'csv': 'bi-file-earmark-spreadsheet'
+    pdf: "bi-file-earmark-pdf",
+    doc: "bi-file-earmark-word",
+    docx: "bi-file-earmark-word",
+    xls: "bi-file-earmark-excel",
+    xlsx: "bi-file-earmark-excel",
+    ppt: "bi-file-earmark-ppt",
+    pptx: "bi-file-earmark-ppt",
+    txt: "bi-file-earmark-text",
+    jpg: "bi-file-earmark-image",
+    jpeg: "bi-file-earmark-image",
+    png: "bi-file-earmark-image",
+    gif: "bi-file-earmark-image",
+    svg: "bi-file-earmark-image",
+    mp4: "bi-file-earmark-play",
+    avi: "bi-file-earmark-play",
+    mov: "bi-file-earmark-play",
+    mp3: "bi-file-earmark-music",
+    wav: "bi-file-earmark-music",
+    zip: "bi-file-earmark-zip",
+    rar: "bi-file-earmark-zip",
+    html: "bi-file-earmark-code",
+    htm: "bi-file-earmark-code",
+    css: "bi-file-earmark-code",
+    js: "bi-file-earmark-code",
+    json: "bi-file-earmark-code",
+    xml: "bi-file-earmark-code",
+    csv: "bi-file-earmark-spreadsheet",
   };
-  
-  return iconMap[fileExtension] || 'bi-file-earmark';
+
+  return iconMap[fileExtension] || "bi-file-earmark";
 }
 
 // Render attachment list with delete functionality
 function renderAttachmentList(container, files, existingAttachments = []) {
   if (!container) return;
-  
-  container.innerHTML = '';
-  
+
+  container.innerHTML = "";
+
   // Show existing attachments (when editing)
   existingAttachments.forEach((url, idx) => {
-    const div = document.createElement('div');
-    div.className = 'attachment-item mb-2 p-2 border rounded';
-    div.style.backgroundColor = 'var(--background-color)';
-    
-    const fileIcon = document.createElement('i');
-    fileIcon.className = `bi ${getFileIcon(url.split('.').pop()?.toLowerCase())} me-2`;
-    fileIcon.style.color = 'var(--text-color)';
-    
-    const fileNameSpan = document.createElement('span');
-    fileNameSpan.className = 'attachment-filename';
-    fileNameSpan.textContent = url.split('/').pop();
-    
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi ${getFileIcon(
+      url.split(".").pop()?.toLowerCase()
+    )} me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = url.split("/").pop();
+
     const viewableExtensions = [
-      'pdf', 'txt', 'html', 'htm', 'css', 'js', 'json', 'xml', 'csv', 'md',
-      'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico',
-      'mp3', 'wav', 'ogg', 'mp4', 'webm',
-      'py', 'java', 'cpp', 'c', 'php', 'rb', 'go', 'rs', 'swift', 'kt',
-      'yaml', 'yml', 'toml', 'ini', 'conf', 'log',
-      'woff', 'woff2', 'ttf', 'eot'
+      "pdf",
+      "txt",
+      "html",
+      "htm",
+      "css",
+      "js",
+      "json",
+      "xml",
+      "csv",
+      "md",
+      "jpg",
+      "jpeg",
+      "png",
+      "gif",
+      "svg",
+      "webp",
+      "bmp",
+      "ico",
+      "mp3",
+      "wav",
+      "ogg",
+      "mp4",
+      "webm",
+      "py",
+      "java",
+      "cpp",
+      "c",
+      "php",
+      "rb",
+      "go",
+      "rs",
+      "swift",
+      "kt",
+      "yaml",
+      "yml",
+      "toml",
+      "ini",
+      "conf",
+      "log",
+      "woff",
+      "woff2",
+      "ttf",
+      "eot",
     ];
-    const fileExtension = url.split('.').pop()?.toLowerCase();
+    const fileExtension = url.split(".").pop()?.toLowerCase();
     const canView = viewableExtensions.includes(fileExtension);
-    const fullUrl = url.startsWith('/uploads/') ? `${API_BASE_URL}${url}` : url;
+    const fullUrl = url.startsWith("/uploads/") ? `${API_BASE_URL}${url}` : url;
 
     let viewBtn = null;
     if (canView) {
-      viewBtn = document.createElement('a');
-      viewBtn.href = '#';
-      viewBtn.className = 'btn btn-sm btn-primary me-2';
+      viewBtn = document.createElement("a");
+      viewBtn.href = "#";
+      viewBtn.className = "btn btn-sm btn-primary me-2";
       viewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>View';
       viewBtn.title = getFileTypeInfo(fileExtension);
       viewBtn.onclick = (e) => {
         e.preventDefault();
-        if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(fileExtension)) {
+        if (
+          ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(
+            fileExtension
+          )
+        ) {
           showImagePreview(fullUrl, fileNameSpan.textContent);
-        } else if (['mp3', 'wav', 'ogg', 'mp4', 'webm'].includes(fileExtension)) {
+        } else if (
+          ["mp3", "wav", "ogg", "mp4", "webm"].includes(fileExtension)
+        ) {
           showMediaPreview(fullUrl, fileNameSpan.textContent, fileExtension);
         } else {
-          window.open(fullUrl, '_blank');
+          window.open(fullUrl, "_blank");
         }
       };
     }
-    const downloadBtn = document.createElement('a');
+    const downloadBtn = document.createElement("a");
     downloadBtn.href = fullUrl;
     downloadBtn.download = fileNameSpan.textContent;
-    downloadBtn.className = 'btn btn-sm btn-outline-secondary me-2';
+    downloadBtn.className = "btn btn-sm btn-outline-secondary me-2";
     downloadBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
-    downloadBtn.title = `Download ${fileNameSpan.textContent} (${getFileTypeInfo(fileExtension)})`;
+    downloadBtn.title = `Download ${
+      fileNameSpan.textContent
+    } (${getFileTypeInfo(fileExtension)})`;
 
     // Remove button for old attachments
-    const removeBtn = document.createElement('button');
+    const removeBtn = document.createElement("button");
     removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
-    removeBtn.className = 'btn btn-sm btn-outline-danger ms-auto';
+    removeBtn.className = "btn btn-sm btn-outline-danger ms-auto";
     removeBtn.onclick = (e) => {
       e.stopPropagation();
       existingAttachments.splice(idx, 1);
@@ -1248,40 +1585,44 @@ function renderAttachmentList(container, files, existingAttachments = []) {
     div.appendChild(removeBtn);
     container.appendChild(div);
   });
-  
+
   // Show new attachments (not yet uploaded)
   files.forEach((file, idx) => {
-    const div = document.createElement('div');
-    div.className = 'attachment-item mb-2 p-2 border rounded';
-    div.style.backgroundColor = 'var(--background-color)';
-    
-    const fileIcon = document.createElement('i');
-    fileIcon.className = `bi ${getFileIcon(file.name.split('.').pop()?.toLowerCase())} me-2`;
-    fileIcon.style.color = 'var(--text-color)';
-    
-    const fileNameSpan = document.createElement('span');
-    fileNameSpan.className = 'attachment-filename';
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi ${getFileIcon(
+      file.name.split(".").pop()?.toLowerCase()
+    )} me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
     fileNameSpan.textContent = file.name;
-    
-    const fileSize = document.createElement('small');
+
+    const fileSize = document.createElement("small");
     fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-    fileSize.className = 'text-muted me-2';
-    
-    const removeBtn = document.createElement('button');
+    fileSize.className = "text-muted me-2";
+
+    const removeBtn = document.createElement("button");
     removeBtn.innerHTML = '<i class="bi bi-x-circle"></i>';
-    removeBtn.className = 'btn btn-sm btn-outline-danger ms-auto';
+    removeBtn.className = "btn btn-sm btn-outline-danger ms-auto";
     removeBtn.onclick = (e) => {
       e.stopPropagation();
       files.splice(idx, 1);
       renderAttachmentList(container, files, existingAttachments);
-      
+
       // Clear file input if no files left
-      const fileInput = document.getElementById("taskAttachment") || document.getElementById("editTaskAttachment");
+      const fileInput =
+        document.getElementById("taskAttachment") ||
+        document.getElementById("editTaskAttachment");
       if (fileInput && files.length === 0) {
-        fileInput.value = '';
+        fileInput.value = "";
       }
     };
-    
+
     div.appendChild(fileIcon);
     div.appendChild(fileNameSpan);
     div.appendChild(fileSize);
@@ -1299,7 +1640,7 @@ function getAttachmentFiles() {
 function setAttachmentDisplay(urls, containerId = "attachmentContainer") {
   const container = document.getElementById(containerId);
   if (!container) return;
-  
+
   editExistingAttachments = Array.isArray(urls) ? [...urls] : [];
   selectedFiles = [];
   renderAttachmentList(container, selectedFiles, editExistingAttachments);
@@ -1308,39 +1649,41 @@ function setAttachmentDisplay(urls, containerId = "attachmentContainer") {
 // Upload files to server
 async function uploadFiles(files) {
   if (!files.length) return [];
-  
+
   try {
-    console.log('Starting file upload for', files.length, 'files');
+    console.log("Starting file upload for", files.length, "files");
     const formData = new FormData();
-    files.forEach(file => {
-      formData.append('files', file);
-      console.log('Added file to FormData:', file.name, file.size);
+    files.forEach((file) => {
+      formData.append("files", file);
+      console.log("Added file to FormData:", file.name, file.size);
     });
-    
+
     const token = localStorage.getItem("token");
-    console.log('Token available:', !!token);
-    
-    const uploadResponse = await fetch(`${API_BASE_URL}/upload`, { 
-      method: 'POST', 
+    console.log("Token available:", !!token);
+
+    const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
       body: formData,
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
-    
-    console.log('Upload response status:', uploadResponse.status);
-    
+
+    console.log("Upload response status:", uploadResponse.status);
+
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error('Upload error response:', errorText);
-      throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      console.error("Upload error response:", errorText);
+      throw new Error(
+        `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
+      );
     }
-    
+
     const data = await uploadResponse.json();
-    console.log('Upload success, files:', data.files);
+    console.log("Upload success, files:", data.files);
     return data.files; // Array of URLs
   } catch (error) {
-    console.error('File upload error:', error);
+    console.error("File upload error:", error);
     displayErrorMessage(`Failed to upload files: ${error.message}`);
     throw error;
   }
@@ -1350,72 +1693,78 @@ async function uploadFiles(files) {
 function resetAttachments() {
   selectedFiles = [];
   editExistingAttachments = [];
-  
+
   const attachmentContainer = document.getElementById("attachmentContainer");
-  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
-  
-  if (attachmentContainer) attachmentContainer.innerHTML = '';
-  if (editAttachmentContainer) editAttachmentContainer.innerHTML = '';
-  
+  const editAttachmentContainer = document.getElementById(
+    "editAttachmentContainer"
+  );
+
+  if (attachmentContainer) attachmentContainer.innerHTML = "";
+  if (editAttachmentContainer) editAttachmentContainer.innerHTML = "";
+
   const fileInput = document.getElementById("taskAttachment");
   const editFileInput = document.getElementById("editTaskAttachment");
-  
-  if (fileInput) fileInput.value = '';
-  if (editFileInput) editFileInput.value = '';
+
+  if (fileInput) fileInput.value = "";
+  if (editFileInput) editFileInput.value = "";
 }
 
 // Show image preview in modal
 function showImagePreview(imageUrl, fileName) {
-  const previewImage = document.getElementById('previewImage');
-  const downloadImageBtn = document.getElementById('downloadImageBtn');
-  const modalTitle = document.getElementById('imagePreviewModalLabel');
-  
+  const previewImage = document.getElementById("previewImage");
+  const downloadImageBtn = document.getElementById("downloadImageBtn");
+  const modalTitle = document.getElementById("imagePreviewModalLabel");
+
   if (previewImage && downloadImageBtn && modalTitle) {
     previewImage.src = imageUrl;
     downloadImageBtn.href = imageUrl;
     downloadImageBtn.download = fileName;
     modalTitle.textContent = `Image Preview: ${fileName}`;
-    
-    const imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+
+    const imagePreviewModal = new bootstrap.Modal(
+      document.getElementById("imagePreviewModal")
+    );
     imagePreviewModal.show();
   }
 }
 
 // Show media preview in modal
 function showMediaPreview(mediaUrl, fileName, fileExtension) {
-  const modalTitle = document.getElementById('imagePreviewModalLabel');
-  const modalBody = document.querySelector('#imagePreviewModal .modal-body');
-  const downloadBtn = document.getElementById('downloadImageBtn');
-  
+  const modalTitle = document.getElementById("imagePreviewModalLabel");
+  const modalBody = document.querySelector("#imagePreviewModal .modal-body");
+  const downloadBtn = document.getElementById("downloadImageBtn");
+
   if (modalTitle && modalBody && downloadBtn) {
     modalTitle.textContent = `Media Preview: ${fileName}`;
     downloadBtn.href = mediaUrl;
     downloadBtn.download = fileName;
-    
+
     // Clear previous content
-    modalBody.innerHTML = '';
-    
+    modalBody.innerHTML = "";
+
     // Create media element based on file type
-    if (['mp3', 'wav', 'ogg'].includes(fileExtension)) {
+    if (["mp3", "wav", "ogg"].includes(fileExtension)) {
       // Audio player
-      const audio = document.createElement('audio');
+      const audio = document.createElement("audio");
       audio.controls = true;
-      audio.style.width = '100%';
-      audio.style.maxWidth = '500px';
+      audio.style.width = "100%";
+      audio.style.maxWidth = "500px";
       audio.src = mediaUrl;
       modalBody.appendChild(audio);
-    } else if (['mp4', 'webm', 'ogg'].includes(fileExtension)) {
+    } else if (["mp4", "webm", "ogg"].includes(fileExtension)) {
       // Video player
-      const video = document.createElement('video');
+      const video = document.createElement("video");
       video.controls = true;
-      video.style.width = '100%';
-      video.style.maxWidth = '800px';
-      video.style.maxHeight = '70vh';
+      video.style.width = "100%";
+      video.style.maxWidth = "800px";
+      video.style.maxHeight = "70vh";
       video.src = mediaUrl;
       modalBody.appendChild(video);
     }
-    
-    const mediaPreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+
+    const mediaPreviewModal = new bootstrap.Modal(
+      document.getElementById("imagePreviewModal")
+    );
     mediaPreviewModal.show();
   }
 }
@@ -1426,39 +1775,44 @@ function addTag(tag) {
   if (!tag) return;
   // Prevent duplicate tags
   if (getTagArray().includes(tag)) return;
-  const tagContainer = document.getElementById('tagContainer');
-  const chip = document.createElement('span');
-  chip.className = 'tag-chip badge bg-info text-dark me-1 mb-1';
+  const tagContainer = document.getElementById("tagContainer");
+  const chip = document.createElement("span");
+  chip.className = "tag-chip badge bg-info text-dark me-1 mb-1";
   chip.textContent = tag;
   // Remove button
-  const removeBtn = document.createElement('button');
-  removeBtn.type = 'button';
-  removeBtn.className = 'btn btn-sm btn-link p-0 m-0 ms-1';
-  removeBtn.innerHTML = '&times;';
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "btn btn-sm btn-link p-0 m-0 ms-1";
+  removeBtn.innerHTML = "&times;";
   removeBtn.onclick = () => chip.remove();
   chip.appendChild(removeBtn);
   tagContainer.appendChild(chip);
 }
 function setTags(tags) {
-  const tagContainer = document.getElementById('tagContainer');
-  tagContainer.innerHTML = '';
-  (tags || []).forEach(tag => addTag(tag));
+  const tagContainer = document.getElementById("tagContainer");
+  tagContainer.innerHTML = "";
+  (tags || []).forEach((tag) => addTag(tag));
 }
 function getTagArray() {
-  const tagContainer = document.getElementById('tagContainer');
-  return Array.from(tagContainer.querySelectorAll('.tag-chip')).map(chip => chip.childNodes[0].textContent.trim());
+  const tagContainer = document.getElementById("tagContainer");
+  return Array.from(tagContainer.querySelectorAll(".tag-chip")).map((chip) =>
+    chip.childNodes[0].textContent.trim()
+  );
 }
 // Add Tag button logic
-const tagInput = document.getElementById('tagInput');
-const addTagBtn = document.getElementById('addTagBtn');
+const tagInput = document.getElementById("tagInput");
+const addTagBtn = document.getElementById("addTagBtn");
 if (addTagBtn && tagInput) {
-  addTagBtn.onclick = function() {
-    const tags = tagInput.value.split(',').map(t => t.trim()).filter(Boolean);
+  addTagBtn.onclick = function () {
+    const tags = tagInput.value
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     tags.forEach(addTag);
-    tagInput.value = '';
+    tagInput.value = "";
   };
-  tagInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
+  tagInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
       e.preventDefault();
       addTagBtn.onclick();
     }
@@ -1467,112 +1821,119 @@ if (addTagBtn && tagInput) {
 
 function showAddTaskModal() {
   setTags([]); // Clear tag chips
-  if (tagInput) tagInput.value = '';
-  const addTaskModal = new bootstrap.Modal(document.getElementById('addTaskModal'));
+  if (tagInput) tagInput.value = "";
+  const addTaskModal = new bootstrap.Modal(
+    document.getElementById("addTaskModal")
+  );
   addTaskModal.show();
 }
 
 // At the end of the file or after DOMContentLoaded:
-const showAddFormBtn = document.getElementById('showAddFormBtn');
+const showAddFormBtn = document.getElementById("showAddFormBtn");
 if (showAddFormBtn) {
-  showAddFormBtn.addEventListener('click', function(e) {
+  showAddFormBtn.addEventListener("click", function (e) {
     e.preventDefault();
     showAddTaskModal();
   });
 }
 
 async function populateExistingTagsDropdown() {
-  const dropdown = document.getElementById('existingTagsDropdown');
+  const dropdown = document.getElementById("existingTagsDropdown");
   if (!dropdown) return;
   dropdown.innerHTML = '<option value="">Select existing tag</option>';
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     const response = await fetch(`${API_BASE_URL}/tasks`, {
-      headers: { 'Authorization': 'Bearer ' + token }
+      headers: { Authorization: "Bearer " + token },
     });
     const tasks = await response.json();
     const tagSet = new Set();
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       if (Array.isArray(task.label)) {
-        task.label.forEach(l => tagSet.add(l));
+        task.label.forEach((l) => tagSet.add(l));
       }
     });
-    Array.from(tagSet).sort().forEach(tag => {
-      const option = document.createElement('option');
-      option.value = tag;
-      option.textContent = tag;
-      dropdown.appendChild(option);
-    });
+    Array.from(tagSet)
+      .sort()
+      .forEach((tag) => {
+        const option = document.createElement("option");
+        option.value = tag;
+        option.textContent = tag;
+        dropdown.appendChild(option);
+      });
   } catch (err) {
     // ignore
   }
 }
 // Add event listener for dropdown
-const existingTagsDropdown = document.getElementById('existingTagsDropdown');
+const existingTagsDropdown = document.getElementById("existingTagsDropdown");
 if (existingTagsDropdown) {
-  existingTagsDropdown.addEventListener('change', function() {
+  existingTagsDropdown.addEventListener("change", function () {
     const tag = this.value;
     if (tag) {
       addTag(tag);
-      this.value = '';
+      this.value = "";
     }
   });
 }
 // Call populateExistingTagsDropdown when opening the modal
 const oldShowAddTaskModal = showAddTaskModal;
-showAddTaskModal = function() {
+showAddTaskModal = function () {
   oldShowAddTaskModal();
   populateExistingTagsDropdown();
 };
 // Also call in handleEditTask
 const oldHandleEditTask = handleEditTask;
-handleEditTask = function(card) {
+handleEditTask = function (card) {
   oldHandleEditTask(card);
   populateExistingTagsDropdown();
 };
 
 // --- 筛选/排序/标签过滤功能 ---
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function () {
   // 监听筛选下拉菜单点击
-  const filterDropdown = document.getElementById('filterDropdown');
+  const filterDropdown = document.getElementById("filterDropdown");
   if (filterDropdown) {
     const dropdownMenu = filterDropdown.nextElementSibling;
     if (dropdownMenu) {
-      dropdownMenu.addEventListener('click', function(e) {
-        const item = e.target.closest('.dropdown-item');
+      dropdownMenu.addEventListener("click", function (e) {
+        const item = e.target.closest(".dropdown-item");
         if (!item) return;
-        const filterType = item.getAttribute('data-filter-type');
+        const filterType = item.getAttribute("data-filter-type");
         if (!filterType) return;
-        
-        if (filterType === 'priority-desc') {
-          filterTasksByPriority('desc');
-        } else if (filterType === 'priority-asc') {
-          filterTasksByPriority('asc');
-        } else if (filterType === 'date-desc') {
-          filterTasksByDueDate('desc');
-        } else if (filterType === 'date-asc') {
-          filterTasksByDueDate('asc');
-        } else if (filterType === 'clear-filters') {
+
+        if (filterType === "priority-desc") {
+          filterTasksByPriority("desc");
+        } else if (filterType === "priority-asc") {
+          filterTasksByPriority("asc");
+        } else if (filterType === "date-desc") {
+          filterTasksByDueDate("desc");
+        } else if (filterType === "date-asc") {
+          filterTasksByDueDate("asc");
+        } else if (filterType === "clear-filters") {
           clearAllFilters();
         }
       });
     }
   }
-  
+
   // Add event listener for Clear Filter button
-  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+  const clearFiltersBtn = document.getElementById("clearFiltersBtn");
   if (clearFiltersBtn) {
-    clearFiltersBtn.addEventListener('click', clearAllFilters);
+    clearFiltersBtn.addEventListener("click", clearAllFilters);
   }
-  
+
   // 为任务卡片上的标签添加点击事件
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('badge') && e.target.closest('.task-card')) {
+  document.addEventListener("click", function (e) {
+    if (
+      e.target.classList.contains("badge") &&
+      e.target.closest(".task-card")
+    ) {
       const tag = e.target.textContent.trim();
       if (tag) {
         filterTasksByTag(tag);
         // 更新筛选按钮文本
-        const filterBtn = document.getElementById('filterDropdown');
+        const filterBtn = document.getElementById("filterDropdown");
         if (filterBtn) {
           filterBtn.innerHTML = `<i class="bi bi-funnel me-2"></i>Filter: ${tag}`;
         }
@@ -1582,42 +1943,44 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 按优先级排序
-function filterTasksByPriority(order = 'desc') {
-  const taskList = document.getElementById('taskList');
-  const cards = Array.from(taskList.querySelectorAll('.task-card'));
+function filterTasksByPriority(order = "desc") {
+  const taskList = document.getElementById("taskList");
+  const cards = Array.from(taskList.querySelectorAll(".task-card"));
   cards.sort((a, b) => {
-    const pA = a.dataset.priority || 'Low';
-    const pB = b.dataset.priority || 'Low';
-    const priorityMap = { 'High': 3, 'Medium': 2, 'Low': 1 };
-    return order === 'desc' ? priorityMap[pB] - priorityMap[pA] : priorityMap[pA] - priorityMap[pB];
+    const pA = a.dataset.priority || "Low";
+    const pB = b.dataset.priority || "Low";
+    const priorityMap = { High: 3, Medium: 2, Low: 1 };
+    return order === "desc"
+      ? priorityMap[pB] - priorityMap[pA]
+      : priorityMap[pA] - priorityMap[pB];
   });
-  cards.forEach(card => taskList.appendChild(card.parentElement)); // .parentElement 是 .col
+  cards.forEach((card) => taskList.appendChild(card.parentElement)); // .parentElement 是 .col
 }
 
 // 按截止日期排序
-function filterTasksByDueDate(order = 'desc') {
-  const taskList = document.getElementById('taskList');
-  const cards = Array.from(taskList.querySelectorAll('.task-card'));
+function filterTasksByDueDate(order = "desc") {
+  const taskList = document.getElementById("taskList");
+  const cards = Array.from(taskList.querySelectorAll(".task-card"));
   cards.sort((a, b) => {
-    const dA = new Date(a.dataset.dueDate || '2100-01-01');
-    const dB = new Date(b.dataset.dueDate || '2100-01-01');
-    return order === 'desc' ? dB - dA : dA - dB;
+    const dA = new Date(a.dataset.dueDate || "2100-01-01");
+    const dB = new Date(b.dataset.dueDate || "2100-01-01");
+    return order === "desc" ? dB - dA : dA - dB;
   });
-  cards.forEach(card => taskList.appendChild(card.parentElement));
+  cards.forEach((card) => taskList.appendChild(card.parentElement));
 }
 
 // 按标签过滤
 function filterTasksByTag(tag) {
-  const taskList = document.getElementById('taskList');
-  const cards = Array.from(taskList.querySelectorAll('.task-card'));
+  const taskList = document.getElementById("taskList");
+  const cards = Array.from(taskList.querySelectorAll(".task-card"));
   let anyVisible = false;
-  cards.forEach(card => {
-    const tags = (card.dataset.tags || '').split(',').map(t => t.trim());
+  cards.forEach((card) => {
+    const tags = (card.dataset.tags || "").split(",").map((t) => t.trim());
     if (tags.includes(tag)) {
-      card.parentElement.style.display = '';
+      card.parentElement.style.display = "";
       anyVisible = true;
     } else {
-      card.parentElement.style.display = 'none';
+      card.parentElement.style.display = "none";
     }
   });
   // 如果没有任何卡片显示，显示空状态
@@ -1630,25 +1993,25 @@ function filterTasksByTag(tag) {
 function clearAllFilters() {
   // Reload all tasks from API to reset to default state
   loadTasksFromAPI();
-  
+
   // Reset filter button text
-  const filterBtn = document.getElementById('filterDropdown');
+  const filterBtn = document.getElementById("filterDropdown");
   if (filterBtn) {
     filterBtn.innerHTML = `<i class="bi bi-funnel me-2"></i>Filter Tasks`;
   }
-  
+
   // Hide empty state
   hideEmptyState();
 }
 
 // 显示空状态
 function showEmptyState(message) {
-  let emptyState = document.getElementById('emptyState');
+  let emptyState = document.getElementById("emptyState");
   if (!emptyState) {
-    emptyState = document.createElement('div');
-    emptyState.id = 'emptyState';
-    emptyState.className = 'col-12 text-center py-5';
-    document.getElementById('taskList').appendChild(emptyState);
+    emptyState = document.createElement("div");
+    emptyState.id = "emptyState";
+    emptyState.className = "col-12 text-center py-5";
+    document.getElementById("taskList").appendChild(emptyState);
   }
   emptyState.innerHTML = `
     <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
@@ -1659,7 +2022,7 @@ function showEmptyState(message) {
 
 // 隐藏空状态
 function hideEmptyState() {
-  const emptyState = document.getElementById('emptyState');
+  const emptyState = document.getElementById("emptyState");
   if (emptyState) {
     emptyState.remove();
   }

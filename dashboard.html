@@ -46,14 +46,49 @@
 
 .form-control.search-bar {
   border: 1px solid var(--primary-accent);
-  box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+  box-shadow: none;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
   background-color: var(--background-color);
   color: var(--text-color);
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-left: 12px;
 }
 .form-control.search-bar::placeholder {
   color: var(--text-color);
   opacity: 0.7;
+}
+
+.input-group:focus-within {
+  box-shadow: 0 0 0 0.25rem rgba(123, 52, 210, 0.25);
+  border-radius: 0.375rem;
+}
+
+.input-group:focus-within .form-control.search-bar {
+  border-right: none;
+  box-shadow: none !important;
+  outline: none !important;
+  z-index: 3;
+}
+
+/* Override default form-control focus styles when inside focused input-group */
+.input-group:focus-within .form-control.search-bar:focus {
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+.input-group:focus-within .btn-primary-accent {
+  border-left: none;
+  box-shadow: none !important;
+  outline: none !important;
+  z-index: 3;
+}
+
+/* Override default button focus styles when inside focused input-group */
+.input-group:focus-within .btn-primary-accent:focus {
+  box-shadow: none !important;
 }
 
 .btn-primary-accent {
@@ -639,12 +674,40 @@
                 <h1 class="mb-0">My Tasks</h1>
                 <span class="task-counter badge bg-secondary">0 tasks</span>
             </div>        <!-- Search and Filter Row -->
-        <div class="row mb-4 align-items-center search-and-filter">
+        <div class="row mb-4 search-and-filter">
             <!-- Search Bar -->
             <div class="col-12 col-md-8 mb-3 mb-md-0">
-                <div class="input-group">
+                <div class="input-group mb-3">
                     <input type="text" class="form-control search-bar" placeholder="Search your tasks...">
                     <button class="btn btn-primary-accent" type="button"><i class="bi bi-search"></i></button>
+                </div>
+                
+                <!-- Search Options -->
+                <div class="d-flex flex-wrap gap-3 mb-2">
+                    <div class="form-check">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="semanticSearchCheckbox"
+                            checked
+                        />
+                        <label class="form-check-label small" for="semanticSearchCheckbox">
+                            Semantic Search
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="containsSearchCheckbox"
+                        />
+                        <label class="form-check-label small" for="containsSearchCheckbox">
+                            Contains Search
+                        </label>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" id="clearSearchBtn" style="display: none;">
+                        <i class="bi bi-x-circle me-1"></i>Clear Search
+                    </button>
                 </div>
             </div>
             
