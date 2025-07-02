@@ -185,8 +185,15 @@ function createTaskCard(task) {
   if (task.attachment && task.attachment.length > 0) {
     const attachmentIcon = document.createElement("i");
     attachmentIcon.className = "bi bi-paperclip action-icon";
+    attachmentIcon.style.color = "#7b34d2";
     attachmentIcon.title = "View Attachments";
     attachmentsDiv.appendChild(attachmentIcon);
+    // Add count badge
+    const countBadge = document.createElement("span");
+    countBadge.className = "ms-1 fw-bold text-purple";
+    countBadge.style.color = "#7b34d2";
+    countBadge.textContent = `x${task.attachment.length}`;
+    attachmentsDiv.appendChild(countBadge);
   }
 
   // Card footer with actions
@@ -1189,7 +1196,7 @@ function populateTaskDetailsModal(taskData) {
           ) {
             showMediaPreview(fullUrl, fileNameSpan.textContent, fileExtension);
           } else {
-            window.open(fullUrl, "_blank");
+            showDocumentPreview(fullUrl, fileNameSpan.textContent);
           }
         };
       }
@@ -1555,7 +1562,7 @@ function renderAttachmentList(container, files, existingAttachments = []) {
         ) {
           showMediaPreview(fullUrl, fileNameSpan.textContent, fileExtension);
         } else {
-          window.open(fullUrl, "_blank");
+          showDocumentPreview(fullUrl, fileNameSpan.textContent);
         }
       };
     }
@@ -1767,6 +1774,48 @@ function showMediaPreview(mediaUrl, fileName, fileExtension) {
     );
     mediaPreviewModal.show();
   }
+}
+
+// Show document preview in modal
+function showDocumentPreview(docUrl, fileName) {
+  let docModal = document.getElementById("documentPreviewModal");
+  if (!docModal) {
+    docModal = document.createElement("div");
+    docModal.className = "modal fade";
+    docModal.id = "documentPreviewModal";
+    docModal.tabIndex = -1;
+    docModal.setAttribute("aria-labelledby", "documentPreviewModalLabel");
+    docModal.setAttribute("aria-hidden", "true");
+    docModal.innerHTML = `
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="documentPreviewModalLabel">Document Preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0" style="height: 80vh;">
+            <iframe id="previewDocFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <a id="downloadDocBtn" href="" download class="btn btn-primary">
+              <i class="bi bi-download me-1"></i>Download
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(docModal);
+  }
+  const previewDocFrame = docModal.querySelector("#previewDocFrame");
+  const downloadDocBtn = docModal.querySelector("#downloadDocBtn");
+  if (previewDocFrame && downloadDocBtn) {
+    previewDocFrame.src = docUrl;
+    downloadDocBtn.href = docUrl;
+    downloadDocBtn.download = fileName;
+  }
+  const modal = new bootstrap.Modal(docModal);
+  modal.show();
 }
 
 // --- Tag Chip Logic ---

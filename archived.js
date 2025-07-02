@@ -251,10 +251,32 @@ function createArchivedTaskCard(task) {
   cardBodyDiv.appendChild(cardHeaderDiv);
   cardBodyDiv.appendChild(descriptionP);
   cardBodyDiv.appendChild(tagsDiv);
+  // Add attachments icon and count below tags and before footer
+  let attachmentCount = 0;
+  if (Array.isArray(task.attachment)) {
+    attachmentCount = task.attachment.length;
+  } else if (typeof task.attachment === 'string' && task.attachment.trim() !== '') {
+    attachmentCount = task.attachment.split(',').filter(att => att.trim()).length;
+  }
+  if (attachmentCount > 0) {
+    const attachmentsDiv = document.createElement("div");
+    attachmentsDiv.className = "mb-2";
+    const attachmentIcon = document.createElement("i");
+    attachmentIcon.className = "bi bi-paperclip";
+    attachmentIcon.style.color = "#7b34d2";
+    attachmentIcon.title = "View Attachments";
+    attachmentsDiv.appendChild(attachmentIcon);
+    // Add count badge
+    const countBadge = document.createElement("span");
+    countBadge.className = "ms-1 fw-bold";
+    countBadge.style.color = "#7b34d2";
+    countBadge.textContent = `x${attachmentCount}`;
+    attachmentsDiv.appendChild(countBadge);
+    cardBodyDiv.appendChild(attachmentsDiv);
+  }
   cardBodyDiv.appendChild(footerDiv);
   cardDiv.appendChild(cardBodyDiv);
   colDiv.appendChild(cardDiv);
-
   return colDiv;
 }
 
@@ -372,6 +394,12 @@ function openTaskDetailsModal(card) {
   // Populate task details modal
   populateTaskDetailsModal(taskData);
 
+  // Set the task ID on the modal for restore functionality
+  const modalElement = document.getElementById("taskDetailsModal");
+  if (modalElement) {
+    modalElement.setAttribute("data-task-id", taskData.taskId);
+  }
+
   // Show the modal
   const taskDetailsModal = new bootstrap.Modal(
     document.getElementById("taskDetailsModal")
@@ -437,12 +465,44 @@ function populateTaskDetailsModal(taskData) {
       .split(",")
       .filter((att) => att.trim());
     attachments.forEach((attachment) => {
+      const fileExtension = attachment.split(".").pop()?.toLowerCase();
+      const fileName = attachment.trim().split("/").pop();
+      const fullUrl = attachment.trim().startsWith("/uploads/") ? `${API_BASE_URL}${attachment.trim()}` : attachment.trim();
+      const viewableExtensions = [
+        "pdf", "txt", "html", "htm", "css", "js", "json", "xml", "csv", "md",
+        "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico",
+        "mp3", "wav", "ogg", "mp4", "webm", "py", "java", "cpp", "c", "php", "rb", "go", "rs", "swift", "kt", "yaml", "yml", "toml", "ini", "conf", "log", "woff", "woff2", "ttf", "eot"
+      ];
+      const canView = viewableExtensions.includes(fileExtension);
       const attachmentItem = document.createElement("div");
       attachmentItem.className = "d-flex align-items-center mb-2";
       attachmentItem.innerHTML = `
         <i class="bi bi-paperclip me-2"></i>
-        <a href="#" class="text-primary">${attachment.trim()}</a>
+        <span class="attachment-filename me-2">${fileName}</span>
       `;
+      if (canView) {
+        const viewBtn = document.createElement("a");
+        viewBtn.href = "#";
+        viewBtn.className = "btn btn-sm btn-primary me-2";
+        viewBtn.innerHTML = '<i class="bi bi-eye me-1"></i>View';
+        viewBtn.onclick = (e) => {
+          e.preventDefault();
+          if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(fileExtension)) {
+            showImagePreview(fullUrl, fileName);
+          } else if (["mp3", "wav", "ogg", "mp4", "webm"].includes(fileExtension)) {
+            showMediaPreview(fullUrl, fileName, fileExtension);
+          } else {
+            showDocumentPreview(fullUrl, fileName);
+          }
+        };
+        attachmentItem.appendChild(viewBtn);
+      }
+      const downloadBtn = document.createElement("a");
+      downloadBtn.href = fullUrl;
+      downloadBtn.download = fileName;
+      downloadBtn.className = "btn btn-sm btn-outline-secondary me-2";
+      downloadBtn.innerHTML = '<i class="bi bi-download me-1"></i>Download';
+      attachmentItem.appendChild(downloadBtn);
       attachmentsContainer.appendChild(attachmentItem);
     });
   } else {
@@ -1013,4 +1073,175 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Setup sort functionality
   setupSortFunctionality();
+
+  const restoreBtn = document.getElementById("restoreTaskBtn");
+  if (restoreBtn) {
+    restoreBtn.addEventListener("click", function () {
+      const modal = document.getElementById("taskDetailsModal");
+      if (modal) {
+        const taskId = modal.getAttribute("data-task-id");
+        if (taskId) {
+          restoreTaskFromModal(taskId);
+        }
+      }
+    });
+  }
+
+  setupLogoutHandler();
 });
+
+// Add these functions at the end of the file to support attachment preview
+function showImagePreview(imageUrl, fileName) {
+  let previewModal = document.getElementById("imagePreviewModal");
+  if (!previewModal) {
+    previewModal = document.createElement("div");
+    previewModal.className = "modal fade";
+    previewModal.id = "imagePreviewModal";
+    previewModal.tabIndex = -1;
+    previewModal.setAttribute("aria-labelledby", "imagePreviewModalLabel");
+    previewModal.setAttribute("aria-hidden", "true");
+    previewModal.innerHTML = `
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imagePreviewModalLabel">Image Preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img id="previewImage" src="" alt="Preview" class="img-fluid" style="max-height: 70vh;">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <a id="downloadImageBtn" href="" download class="btn btn-primary">
+              <i class="bi bi-download me-1"></i>Download
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(previewModal);
+  }
+  const previewImage = previewModal.querySelector("#previewImage");
+  const downloadImageBtn = previewModal.querySelector("#downloadImageBtn");
+  if (previewImage && downloadImageBtn) {
+    previewImage.src = imageUrl;
+    downloadImageBtn.href = imageUrl;
+    downloadImageBtn.download = fileName;
+  }
+  const modal = new bootstrap.Modal(previewModal);
+  modal.show();
+}
+
+function showMediaPreview(mediaUrl, fileName, fileExtension) {
+  let mediaModal = document.getElementById("mediaPreviewModal");
+  if (!mediaModal) {
+    mediaModal = document.createElement("div");
+    mediaModal.className = "modal fade";
+    mediaModal.id = "mediaPreviewModal";
+    mediaModal.tabIndex = -1;
+    mediaModal.setAttribute("aria-labelledby", "mediaPreviewModalLabel");
+    mediaModal.setAttribute("aria-hidden", "true");
+    mediaModal.innerHTML = `
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="mediaPreviewModalLabel">Media Preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center" id="mediaPreviewBody"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <a id="downloadMediaBtn" href="" download class="btn btn-primary">
+              <i class="bi bi-download me-1"></i>Download
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(mediaModal);
+  }
+  const mediaPreviewBody = mediaModal.querySelector("#mediaPreviewBody");
+  const downloadMediaBtn = mediaModal.querySelector("#downloadMediaBtn");
+  if (mediaPreviewBody && downloadMediaBtn) {
+    if (["mp4", "webm"].includes(fileExtension)) {
+      mediaPreviewBody.innerHTML = `<video src="${mediaUrl}" controls style="max-width: 100%; max-height: 60vh;"></video>`;
+    } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
+      mediaPreviewBody.innerHTML = `<audio src="${mediaUrl}" controls style="width: 100%"></audio>`;
+    } else {
+      mediaPreviewBody.innerHTML = `<p>Cannot preview this file type.</p>`;
+    }
+    downloadMediaBtn.href = mediaUrl;
+    downloadMediaBtn.download = fileName;
+  }
+  const modal = new bootstrap.Modal(mediaModal);
+  modal.show();
+}
+
+function showDocumentPreview(docUrl, fileName) {
+  let docModal = document.getElementById("documentPreviewModal");
+  if (!docModal) {
+    docModal = document.createElement("div");
+    docModal.className = "modal fade";
+    docModal.id = "documentPreviewModal";
+    docModal.tabIndex = -1;
+    docModal.setAttribute("aria-labelledby", "documentPreviewModalLabel");
+    docModal.setAttribute("aria-hidden", "true");
+    docModal.innerHTML = `
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="documentPreviewModalLabel">Document Preview</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0" style="height: 80vh;">
+            <iframe id="previewDocFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <a id="downloadDocBtn" href="" download class="btn btn-primary">
+              <i class="bi bi-download me-1"></i>Download
+            </a>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(docModal);
+  }
+  const previewDocFrame = docModal.querySelector("#previewDocFrame");
+  const downloadDocBtn = docModal.querySelector("#downloadDocBtn");
+  if (previewDocFrame && downloadDocBtn) {
+    previewDocFrame.src = docUrl;
+    downloadDocBtn.href = docUrl;
+    downloadDocBtn.download = fileName;
+  }
+  const modal = new bootstrap.Modal(docModal);
+  modal.show();
+}
+
+function setupLogoutHandler() {
+  // Look for logout buttons or links
+  const logoutElements = document.querySelectorAll('[data-action="logout"], .logout-btn, .bi-box-arrow-right');
+  logoutElements.forEach((element) => {
+    element.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (confirm("Are you sure you want to logout?")) {
+        handleLogout();
+      }
+    });
+  });
+  // Also handle if logout is in a parent element
+  document.addEventListener("click", (e) => {
+    if (
+      e.target.closest(".bi-box-arrow-right") ||
+      e.target.textContent.toLowerCase().includes("logout")
+    ) {
+      const parentLink = e.target.closest("a");
+      if (parentLink && parentLink.href.includes("#")) {
+        e.preventDefault();
+        if (confirm("Are you sure you want to logout?")) {
+          handleLogout();
+        }
+      }
+    }
+  });
+}

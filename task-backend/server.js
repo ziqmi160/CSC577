@@ -556,6 +556,86 @@ app.delete("/tasks", async (req, res) => {
   }
 });
 
+// --- User Profile Management Endpoints ---
+
+// Update profile (username/email)
+app.put('/update-profile', authMiddleware, async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    if (!username || !email) {
+      return res.status(400).json({ message: 'Username and email are required.' });
+    }
+    // Check for duplicate username/email (excluding current user)
+    const existingUser = await User.findOne({
+      $or: [
+        { username, _id: { $ne: req.user.id } },
+        { email, _id: { $ne: req.user.id } }
+      ]
+    });
+    if (existingUser) {
+      return res.status(409).json({ message: 'Username or email already exists.' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    user.username = username;
+    user.email = email;
+    await user.save();
+    // Issue new JWT with updated info
+    const payload = { id: user._id, username: user.username, email: user.email };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+    res.status(200).json({ message: 'Profile updated successfully.', token });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Change password
+app.put('/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new password are required.' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Current password is incorrect.' });
+    }
+    user.password = newPassword;
+    await user.save();
+    res.status(200).json({ message: 'Password changed successfully.' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Delete account
+app.delete('/delete-account', authMiddleware, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required.' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Password is incorrect.' });
+    }
+    // Delete all tasks for this user
+    await Task.deleteMany({ user: user._id });
+    // Delete user
+    await user.deleteOne();
+    res.status(200).json({ message: 'Account and all associated data deleted successfully.' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // --- Start the server ---
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
