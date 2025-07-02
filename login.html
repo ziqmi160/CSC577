@@ -1,157 +1,522 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Do-It Sign In</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
-      background-size: 800% 800%;
-      color: #e6c9f0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: gradientMove 20s ease infinite;
-    }
-
-    @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .signin-container {
-      text-align: center;
-      padding: 40px 30px;
-      background-color: rgba(255, 255, 255, 0.03);
-      border-radius: 20px;
-      box-shadow: 0 0 20px #d2aaff, 0 0 40px #bb95ce, 0 0 60px #cda8d8;
-      max-width: 400px;
-      width: 100%;
-    }
-
-    h1 {
-      font-size: 2.8rem;
-      margin-bottom: 10px;
-      color: #f7e9ff;
-    }
-
-    h1 strong {
-      color: #d2aaff;
-    }
-
-    p {
-      font-size: 1.1rem;
-      color: #f3e7f7;
-      margin-bottom: 30px;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    input[type="email"],
-    input[type="password"] {
-      padding: 14px 18px;
-      border-radius: 30px;
-      border: none;
-      font-size: 1rem;
-      color: #2f004f;
-      background: #f7e9ff;
-      box-shadow: 0 4px 8px rgba(230, 201, 240, 0.4);
-      outline: none;
-    }
-
-    input::placeholder {
-      color: #7a5d99;
-    }
-
-    .signin-button {
-      background: #cda8d8;
-      color: #2f004f;
-      padding: 14px 32px;
-      border: none;
-      border-radius: 40px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 6px 12px rgba(205, 168, 216, 0.5);
-      transition: background-color 0.3s ease, transform 0.2s ease;
-    }
-
-    .signin-button:hover {
-      background-color: #bb95ce;
-      transform: translateY(-3px);
-    }
-
-    @media (max-width: 500px) {
-      .signin-container {
-        padding: 30px 20px;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign In - Smart To-Do</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #7b34d2;
+        --primary-light: #9d5fff;
+        --primary-dark: #5e2ba3;
+        --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        --card-shadow: 0 15px 35px rgba(123, 52, 210, 0.1);
       }
 
-      h1 {
-        font-size: 2.2rem;
+      body {
+        background: var(--bg-gradient);
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       }
 
-      p {
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        max-width: 450px;
+        width: 100%;
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-light)
+        );
+        color: white;
+        padding: 2rem 2rem 1rem;
+        text-align: center;
+        border: none;
+      }
+
+      .card-header h2 {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        font-size: 2rem;
+      }
+
+      .card-header p {
+        opacity: 0.9;
+        margin-bottom: 0;
         font-size: 1rem;
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="signin-container">
-    <h1>Welcome Back to <strong>DO-IT</strong></h1>
-    <p>Sign in to continue your smart planning journey.</p>
-    <form action="#" method="post">
-      <input type="email" name="email" placeholder="Email Address" required />
-      <input type="password" name="password" placeholder="Password" required />
-      <button type="submit" class="signin-button">Sign In</button>
-    </form>
-    <div style="margin-top: 18px; text-align: center;">
-      <span>Don't have an account? <a href="signup.html" style="color: #d2aaff; text-decoration: underline;">Sign up</a></span>
-    </div>
-  </div>
-  <script>
-  // Check if user is already logged in
-  document.addEventListener('DOMContentLoaded', function() {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // User is already logged in, redirect to the main app
-      window.location.href = 'index3.html';
-    }
-  });
 
-  document.querySelector('form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const email = this.elements['email'].value;
-    const password = this.elements['password'].value;
-
-    try {
-      const res = await fetch('http://localhost:5000/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        localStorage.setItem('token', data.token);
-        // Show success message and redirect
-        alert('Login successful! Welcome back to Do-It!');
-        window.location.href = 'index3.html';
-      } else {
-        alert(data.message || 'Login failed. Please check your credentials.');
+      .card-body {
+        padding: 2rem;
       }
-    } catch (err) {
-      alert('Network error. Please check your connection and try again.');
-    }
-  });
-  </script>
-</body>
+
+      .form-floating {
+        margin-bottom: 1.5rem;
+      }
+
+      .input-group {
+        margin-bottom: 1.5rem;
+      }
+
+      .form-floating > .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 0 12px 12px 0;
+        padding: 1.625rem 0.75rem 0.625rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        border-left: none;
+        height: 58px;
+        line-height: 1.25;
+      }
+
+      .form-floating > label {
+        color: #6c757d;
+        font-weight: 500;
+        padding: 1rem 0.75rem;
+        transform-origin: 0 0;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+      }
+
+      .form-floating > .form-control:placeholder-shown ~ label {
+        transform: scale(1) translateY(0rem) translateX(0rem);
+      }
+
+      .form-floating > .form-control:focus ~ label,
+      .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+      }
+
+      .input-group-text {
+        background: transparent;
+        border: 2px solid #e9ecef;
+        border-right: none;
+        border-radius: 12px 0 0 12px;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 58px;
+        width: 3rem;
+      }
+
+      .input-group:focus-within .input-group-text,
+      .input-group:focus-within .form-control {
+        border-color: var(--primary-color);
+      }
+
+      .input-group.is-valid .input-group-text,
+      .input-group.is-valid .form-control {
+        border-color: #198754;
+      }
+
+      .input-group.is-invalid .input-group-text,
+      .input-group.is-invalid .form-control {
+        border-color: #dc3545;
+      }
+
+      .form-floating > .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: none;
+      }
+
+      .form-floating > label {
+        color: #6c757d;
+        font-weight: 500;
+        padding: 1rem 0.75rem;
+        transform-origin: 0 0;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+      }
+
+      .form-floating > .form-control:placeholder-shown ~ label {
+        transform: scale(1) translateY(0rem) translateX(0rem);
+      }
+
+      .form-floating > .form-control:focus ~ label,
+      .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+      }
+
+      .password-toggle {
+        border: 2px solid #e9ecef;
+        border-left: none;
+        border-radius: 0 12px 12px 0;
+        background: transparent;
+        color: var(--primary-color);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 58px;
+        width: 3rem;
+        padding: 0;
+      }
+
+      .password-toggle:hover {
+        color: var(--primary-dark);
+        background: rgba(123, 52, 210, 0.05);
+      }
+
+      .invalid-feedback.w-100 {
+        width: 100% !important;
+        margin-top: 0.25rem;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-light)
+        );
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        width: 100%;
+        transition: all 0.3s ease;
+        text-transform: none;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--primary-color)
+        );
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(123, 52, 210, 0.3);
+      }
+
+      .btn-primary:focus {
+        box-shadow: 0 0 0 0.2rem rgba(123, 52, 210, 0.25);
+      }
+
+      .signup-link {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .signup-link a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+      }
+
+      .signup-link a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+      }
+
+      .loading-spinner {
+        display: none;
+      }
+
+      .btn-primary.loading .loading-spinner {
+        display: inline-block;
+      }
+
+      .btn-primary.loading .btn-text {
+        display: none;
+      }
+
+      @media (max-width: 576px) {
+        .login-container {
+          padding: 10px;
+        }
+
+        .card-header {
+          padding: 1.5rem 1.5rem 1rem;
+        }
+
+        .card-header h2 {
+          font-size: 1.75rem;
+        }
+
+        .card-body {
+          padding: 1.5rem;
+        }
+      }
+
+      .alert {
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+      }
+
+      .alert-success {
+        background-color: rgba(25, 135, 84, 0.1);
+        border-color: rgba(25, 135, 84, 0.2);
+        color: #198754;
+      }
+
+      .alert-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+        border-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="card-header">
+          <h2><i class="bi bi-check2-circle me-2"></i>Welcome Back</h2>
+          <p>Sign in to continue your productivity journey</p>
+        </div>
+        <div class="card-body">
+          <div id="alertContainer"></div>
+
+          <form id="loginForm" novalidate>
+            <div class="input-group mb-3">
+              <span class="input-group-text">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <div class="form-floating flex-grow-1">
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  name="email"
+                  placeholder="Enter your email"
+                  required
+                />
+                <label for="email">Email Address</label>
+              </div>
+              <div class="invalid-feedback w-100">
+                Please enter a valid email address.
+              </div>
+            </div>
+
+            <div class="input-group mb-3">
+              <span class="input-group-text">
+                <i class="bi bi-lock"></i>
+              </span>
+              <div class="form-floating flex-grow-1">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="password"
+                  name="password"
+                  placeholder="Enter your password"
+                  required
+                />
+                <label for="password">Password</label>
+              </div>
+              <button
+                class="btn btn-outline-secondary password-toggle"
+                type="button"
+                id="togglePassword"
+              >
+                <i class="bi bi-eye" id="toggleIcon"></i>
+              </button>
+              <div class="invalid-feedback w-100">
+                Please enter your password.
+              </div>
+            </div>
+
+            <button class="btn btn-primary" type="submit" id="loginBtn">
+              <span
+                class="loading-spinner spinner-border spinner-border-sm me-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+              <span class="btn-text"
+                ><i class="bi bi-box-arrow-in-right me-2"></i>Sign In</span
+              >
+            </button>
+          </form>
+
+          <div class="signup-link">
+            <p class="mb-0">
+              Don't have an account? <a href="signup.html">Create one here</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Check if user is already logged in
+      document.addEventListener("DOMContentLoaded", function () {
+        const token = localStorage.getItem("token");
+        if (token) {
+          // User is already logged in, redirect to the main app
+          window.location.href = "index3.html";
+        }
+      });
+
+      // Password toggle functionality
+      const togglePassword = document.getElementById("togglePassword");
+      const password = document.getElementById("password");
+      const toggleIcon = document.getElementById("toggleIcon");
+
+      togglePassword.addEventListener("click", function () {
+        const type =
+          password.getAttribute("type") === "password" ? "text" : "password";
+        password.setAttribute("type", type);
+
+        if (type === "password") {
+          toggleIcon.className = "bi bi-eye";
+        } else {
+          toggleIcon.className = "bi bi-eye-slash";
+        }
+      });
+
+      // Form validation and submission
+      const loginForm = document.getElementById("loginForm");
+      const loginBtn = document.getElementById("loginBtn");
+      const alertContainer = document.getElementById("alertContainer");
+
+      function showAlert(message, type = "danger") {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+                <i class="bi bi-${
+                  type === "success" ? "check-circle" : "exclamation-triangle"
+                } me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+        alertContainer.innerHTML = "";
+        alertContainer.appendChild(alertDiv);
+      }
+
+      loginForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        // Reset previous validation states
+        const inputGroups = this.querySelectorAll(".input-group");
+        inputGroups.forEach((group) => {
+          group.classList.remove("is-invalid", "is-valid");
+        });
+
+        // Validate form
+        let isValid = true;
+        const emailGroup = document
+          .getElementById("email")
+          .closest(".input-group");
+        const passwordGroup = document
+          .getElementById("password")
+          .closest(".input-group");
+        const email = document.getElementById("email");
+        const password = document.getElementById("password");
+
+        // Email validation
+        if (!email.value.trim()) {
+          emailGroup.classList.add("is-invalid");
+          isValid = false;
+        } else if (!isValidEmail(email.value)) {
+          emailGroup.classList.add("is-invalid");
+          isValid = false;
+        } else {
+          emailGroup.classList.add("is-valid");
+        }
+
+        // Password validation
+        if (!password.value.trim()) {
+          passwordGroup.classList.add("is-invalid");
+          isValid = false;
+        } else {
+          passwordGroup.classList.add("is-valid");
+        }
+
+        if (!isValid) {
+          showAlert("Please fill in all fields correctly.");
+          return;
+        }
+
+        // Show loading state
+        loginBtn.classList.add("loading");
+        loginBtn.disabled = true;
+
+        try {
+          const response = await fetch("http://localhost:5000/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: email.value.trim(),
+              password: password.value,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            localStorage.setItem("token", data.token);
+            showAlert("Login successful! Redirecting...", "success");
+
+            setTimeout(() => {
+              window.location.href = "dashboard.html";
+            }, 1000);
+          } else {
+            showAlert(
+              data.message || "Login failed. Please check your credentials."
+            );
+          }
+        } catch (error) {
+          console.error("Login error:", error);
+          showAlert(
+            "Network error. Please check your connection and try again."
+          );
+        } finally {
+          // Hide loading state
+          loginBtn.classList.remove("loading");
+          loginBtn.disabled = false;
+        }
+      });
+
+      function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+      }
+
+      // Real-time validation
+      document.getElementById("email").addEventListener("input", function () {
+        const inputGroup = this.closest(".input-group");
+        inputGroup.classList.remove("is-invalid", "is-valid");
+        if (this.value.trim() && isValidEmail(this.value)) {
+          inputGroup.classList.add("is-valid");
+        }
+      });
+
+      document
+        .getElementById("password")
+        .addEventListener("input", function () {
+          const inputGroup = this.closest(".input-group");
+          inputGroup.classList.remove("is-invalid", "is-valid");
+          if (this.value.trim()) {
+            inputGroup.classList.add("is-valid");
+          }
+        });
+    </script>
+  </body>
 </html>

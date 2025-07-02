@@ -1,229 +1,920 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css">
-  <title>Do-It Account</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(270deg, #06000a, #350066, #4c0e5c, #06000a);
-      background-size: 800% 800%;
-      color: #e6c9f0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: gradientMove 20s ease infinite;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Settings - Smart To-Do</title>
+    <!-- Bootstrap 5 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
 
-    @keyframes gradientMove {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    .account-container {
-      background-color: rgba(255, 255, 255, 0.03);
-      padding: 40px 30px;
-      border-radius: 20px;
-      box-shadow: 0 0 20px #d2aaff, 0 0 40px #bb95ce, 0 0 60px #cda8d8;
-      max-width: 1000px;
-      width: 100%;
-      text-align: left; /* Left align text */
-    }
-
-    h1 {
-      color: #f7e9ff;
-      font-size: 2.8rem;
-      margin-bottom: 20px;
-      text-align: left; /* Left align heading */
-    }
-
-    .info-label {
-      font-weight: 700;
-      color: #d2aaff;
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    .info-value {
-      background: #f7e9ff;
-      color: #2f004f;
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      user-select: none;
-      font-size: 1.1rem;
-      box-shadow: 0 4px 8px rgba(230, 201, 240, 0.4);
-    }
-
-    .logout-button {
-      display: block;
-      margin: 0 auto;
-      background: #cda8d8;
-      color: #2f004f;
-      padding: 14px 32px;
-      border: none;
-      border-radius: 40px;
-      font-size: 1.3rem;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 6px 12px rgba(205, 168, 216, 0.5);
-      transition: background-color 0.3s ease, transform 0.2s ease;
-    }
-
-    .logout-button:hover {
-      background-color: #bb95ce;
-      transform: translateY(-3px);
-    }
-
-    @media (max-width: 500px) {
-      .account-container {
-        padding: 30px 20px;
+    <style>
+      :root {
+        --primary-color: #7b34d2;
+        --primary-light: #9d5fff;
+        --primary-dark: #5e2ba3;
+        --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        --card-shadow: 0 15px 35px rgba(123, 52, 210, 0.1);
       }
 
-      h1 {
-        font-size: 2.2rem;
+      body {
+        background: var(--bg-gradient);
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
       }
-    }
-  </style>
-</head>
-<body>
 
-  <!-- Hamburger icon for Sidebar -->
-  <div id="hamburger" onclick="toggleSidebar()"
-      style="position: fixed; top: 20px; left: 20px; z-index: 1100; cursor: pointer;">
-      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
-      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
-      <div style="width: 50px; height: 6px; background: #7b34d2; margin: 6px 0;"></div>
-  </div>
+      .main-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 1rem;
+      }
 
-  <!-- Sidebar Navigation -->
-  <div id="sidebar"
-      style="
-          position: fixed;
-          top: 0;
-          left: -260px;
-          width: 260px;
-          height: 100%;
-          background-color: #111;
-          box-shadow: 0 0 20px #d2aaff, 0 0 20px #bb95ce, 0 0 40px #cda8d8;
-          padding-top: 60px;
-          transition: left 0.3s ease;
-          z-index: 1050;
-          color: #7b34d2;
-          font-family: Arial, sans-serif;
-      ">
-      <a href="index3.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Home</a>
-      <a href="account.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Account</a>
-      <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Archived</a>
-      <a href="priority.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Priority</a>
-      <a href="scheduled.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Scheduled</a>
-      <a href="label.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Label</a>
-      <a href="#" id="logoutBtn" style="display: block; padding: 16px; color: #e74c3c; text-decoration: none; font-weight: bold;">Logout</a>
-      <div style="margin: 40px 20px;">
-          <label class="switch">
-              <span class="sun">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                      <g fill="#ffd43b">
-                          <circle r="5" cy="12" cx="12"></circle>
-                          <path d="m21 13h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm-17 0h-1a1 1 0 0 1 0-2h1a1 1 0 0 1 0 2zm13.66-5.66a1 1 0 0 1 -.66-.29 1 1 0 0 1 0-1.41l.71-.71a1 1 0 1 1 1.41 1.41l-.71.71a1 1 0 0 1 -.75.29zm-12.02 12.02a1 1 0 0 1 -.71-.29 1 1 0 0 1 0-1.41l.71-.66a1 1 0 0 1 1.41 1.41l-.71.71a1 1 0 0 1 -.7.24zm6.36-14.36a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm0 17a1 1 0 0 1 -1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1 -1 1zm-5.66-14.66a1 1 0 0 1 -.7-.29l-.71-.71a1 1 0 0 1 1.41-1.41l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.29zm12.02 12.02a1 1 0 0 1 -.7-.29l-.66-.71a1 1 0 0 1 1.36-1.36l.71.71a1 1 0 0 1 0 1.41 1 1 0 0 1 -.71.24z">
-                      </path>
-                  </g>
-              </svg>
-              </span>
-              <span class="moon">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="24" height="24">
-                      <path
-                          d="m223.5 32c-123.5 0-223.5 100.3-223.5 224s100 224 223.5 224c60.6 0 115.5-24.2 155.8-63.4 5-4.9 6.3-12.5 3.1-18.7s-10.1-9.7-17-8.5c-9.8 1.7-19.8 2.6-30.1 2.6-96.9 0-175.5-78.8-175.5-176 0-65.8 36-123.1 89.3-153.3 6.1-3.5 9.2-10.5 7.7-17.3s-7.3-11.9-14.3-12.5c-6.3-.5-12.6-.8-19-.8z">
-                      </path>
-                  </svg>
-              </span>
-              <input type="checkbox" id="modeToggle" class="mode-toggle input" />
-              <span class="slider"></span>
-          </label>
+      .page-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .page-header h1 {
+        color: var(--primary-color);
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .page-header p {
+        color: #6c757d;
+        font-size: 1.1rem;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-bottom: 2rem;
+        overflow: hidden;
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-light)
+        );
+        color: white;
+        border: none;
+        padding: 1.5rem 2rem;
+      }
+
+      .card-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.25rem;
+      }
+
+      .card-body {
+        padding: 2rem;
+      }
+
+      .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+      }
+
+      .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(123, 52, 210, 0.15);
+      }
+
+      .form-control.is-valid {
+        border-color: #198754;
+      }
+
+      .form-control.is-invalid {
+        border-color: #dc3545;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--primary-light)
+        );
+        border: none;
+        border-radius: 12px;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary:hover {
+        background: linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--primary-color)
+        );
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(123, 52, 210, 0.3);
+      }
+
+      .btn-outline-primary {
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        border-radius: 12px;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .btn-outline-primary:hover {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+      }
+
+      .btn-danger {
+        border-radius: 12px;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .btn-danger:hover {
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        border-radius: 12px;
+        padding: 0.875rem 2rem;
+        font-weight: 600;
+      }
+
+      .info-display {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        color: #495057;
+        margin-bottom: 1rem;
+      }
+
+      /* Default state - show info displays, hide profile inputs */
+      .profile-input {
+        display: none !important;
+      }
+
+      /* Button visibility */
+      #saveProfileBtn,
+      #cancelEditBtn {
+        display: none !important;
+      }
+
+      /* Edit mode - hide info displays, show inputs */
+      .edit-mode .info-display {
+        display: none !important;
+      }
+
+      .edit-mode .profile-input {
+        display: block !important;
+      }
+
+      .edit-mode #editProfileBtn {
+        display: none !important;
+      }
+
+      .edit-mode #saveProfileBtn,
+      .edit-mode #cancelEditBtn {
+        display: inline-block !important;
+      }
+
+      /* View mode - show info displays, hide inputs */
+      .view-mode .info-display {
+        display: block !important;
+      }
+
+      .view-mode .profile-input {
+        display: none !important;
+      }
+
+      .back-button {
+        position: fixed;
+        top: 2rem;
+        left: 2rem;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .back-button:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: scale(1.1);
+      }
+
+      .loading-spinner {
+        display: none;
+      }
+
+      .btn.loading .loading-spinner {
+        display: inline-block;
+      }
+
+      .btn.loading .btn-text {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .main-container {
+          padding: 0 0.5rem;
+        }
+
+        .page-header h1 {
+          font-size: 2rem;
+        }
+
+        .card-body {
+          padding: 1.5rem;
+        }
+
+        .back-button {
+          top: 1rem;
+          left: 1rem;
+          width: 45px;
+          height: 45px;
+        }
+      }
+
+      .alert {
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+      }
+
+      .modal-content {
+        border-radius: 20px;
+        border: none;
+        box-shadow: var(--card-shadow);
+      }
+
+      .modal-header {
+        background: linear-gradient(135deg, #dc3545, #e74c3c);
+        color: white;
+        border: none;
+        border-radius: 20px 20px 0 0;
+      }
+
+      .modal-footer {
+        border: none;
+        padding: 1.5rem 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Back to Dashboard Button -->
+    <a href="dashboard.html" class="back-button" title="Back to Dashboard">
+      <i class="bi bi-arrow-left fs-5"></i>
+    </a>
+
+    <div class="main-container">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1><i class="bi bi-person-gear me-3"></i>Account Settings</h1>
+        <p>Manage your profile information and account preferences</p>
       </div>
-  </div>
 
-  <div class="account-container">
-    <h1>Your Account</h1>
+      <!-- Success/Error Alert Container -->
+      <div id="alertContainer"></div>
 
-    <label class="info-label" for="username">Username</label>
-    <div id="username" class="info-value" tabindex="0"></div>
+      <!-- Account Information Card -->
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="bi bi-person-circle me-2"></i>Profile Information</h5>
+        </div>
+        <div class="card-body" id="profileSection">
+          <form id="profileForm">
+            <!-- Username Field -->
+            <div class="mb-4">
+              <label for="username" class="form-label">
+                <i class="bi bi-person me-2"></i>Username
+              </label>
+              <div class="info-display" id="usernameDisplay">Loading...</div>
+              <input
+                type="text"
+                class="form-control profile-input"
+                id="username"
+                name="username"
+                placeholder="Enter your username"
+                required
+              />
+              <div class="invalid-feedback">
+                Please provide a valid username (at least 3 characters).
+              </div>
+            </div>
 
-    <label class="info-label" for="email">Email Address</label>
-    <div id="email" class="info-value" tabindex="0"></div>
+            <!-- Email Field -->
+            <div class="mb-4">
+              <label for="email" class="form-label">
+                <i class="bi bi-envelope me-2"></i>Email Address
+              </label>
+              <div class="info-display" id="emailDisplay">Loading...</div>
+              <input
+                type="email"
+                class="form-control profile-input"
+                id="email"
+                name="email"
+                placeholder="Enter your email address"
+                required
+              />
+              <div class="invalid-feedback">
+                Please provide a valid email address.
+              </div>
+            </div>
 
-    <button class="logout-button" id="logoutBtnMain" aria-label="Logout from your account">Log Out</button>
-  </div>
+            <!-- Action Buttons -->
+            <div class="d-flex gap-3 flex-wrap">
+              <button
+                type="button"
+                class="btn btn-outline-primary"
+                id="editProfileBtn"
+              >
+                <i class="bi bi-pencil me-2"></i>Edit Profile
+              </button>
+              <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+                <span
+                  class="loading-spinner spinner-border spinner-border-sm me-2"
+                ></span>
+                <span class="btn-text"
+                  ><i class="bi bi-check2 me-2"></i>Save Changes</span
+                >
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="cancelEditBtn"
+              >
+                <i class="bi bi-x-lg me-2"></i>Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
 
-  <script>
-  // Check authentication
-  if (!localStorage.getItem('token')) {
-      window.location.href = 'main.html?auth=required';
-  }
+      <!-- Change Password Card -->
+      <div class="card">
+        <div class="card-header">
+          <h5><i class="bi bi-shield-lock me-2"></i>Change Password</h5>
+        </div>
+        <div class="card-body">
+          <form id="passwordForm" novalidate>
+            <!-- Current Password -->
+            <div class="mb-3">
+              <label for="currentPassword" class="form-label">
+                <i class="bi bi-lock me-2"></i>Current Password
+              </label>
+              <input
+                type="password"
+                class="form-control"
+                id="currentPassword"
+                name="currentPassword"
+                placeholder="Enter your current password"
+                required
+              />
+              <div class="invalid-feedback">
+                Please enter your current password.
+              </div>
+            </div>
 
-  // Decode JWT (simple base64 decode, not secure for sensitive info)
-  function parseJwt (token) {
-      try {
-          return JSON.parse(atob(token.split('.')[1]));
-      } catch (e) {
+            <!-- New Password -->
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">
+                <i class="bi bi-key me-2"></i>New Password
+              </label>
+              <input
+                type="password"
+                class="form-control"
+                id="newPassword"
+                name="newPassword"
+                placeholder="Enter your new password"
+                required
+              />
+              <div class="invalid-feedback">
+                Password must be at least 8 characters long.
+              </div>
+              <div class="form-text">
+                Password should be at least 8 characters long and include
+                letters and numbers.
+              </div>
+            </div>
+
+            <!-- Confirm New Password -->
+            <div class="mb-4">
+              <label for="confirmPassword" class="form-label">
+                <i class="bi bi-key-fill me-2"></i>Confirm New Password
+              </label>
+              <input
+                type="password"
+                class="form-control"
+                id="confirmPassword"
+                name="confirmPassword"
+                placeholder="Confirm your new password"
+                required
+              />
+              <div class="invalid-feedback">Passwords do not match.</div>
+            </div>
+
+            <!-- Change Password Button -->
+            <button
+              type="submit"
+              class="btn btn-primary"
+              id="changePasswordBtn"
+            >
+              <span
+                class="loading-spinner spinner-border spinner-border-sm me-2"
+              ></span>
+              <span class="btn-text"
+                ><i class="bi bi-shield-check me-2"></i>Change Password</span
+              >
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Account Actions Card -->
+      <div class="card">
+        <div class="card-header">
+          <h5>
+            <i class="bi bi-exclamation-triangle me-2"></i>Account Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">Delete Account</h6>
+              <p class="text-muted mb-0">
+                Permanently delete your account and all associated data.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-danger"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteAccountModal"
+            >
+              <i class="bi bi-trash me-2"></i>Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div
+      class="modal fade"
+      id="deleteAccountModal"
+      tabindex="-1"
+      aria-labelledby="deleteAccountModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteAccountModalLabel">
+              <i class="bi bi-exclamation-triangle me-2"></i>Delete Account
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-center mb-4">
+              <i
+                class="bi bi-exclamation-triangle-fill text-danger"
+                style="font-size: 3rem"
+              ></i>
+            </div>
+            <h6 class="text-center mb-3">Are you absolutely sure?</h6>
+            <p class="text-muted text-center mb-4">
+              This action cannot be undone. This will permanently delete your
+              account and remove all your data from our servers.
+            </p>
+            <div class="mb-3">
+              <label for="deleteConfirmPassword" class="form-label"
+                >Enter your password to confirm:</label
+              >
+              <input
+                type="password"
+                class="form-control"
+                id="deleteConfirmPassword"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+              <i class="bi bi-trash me-2"></i>Delete My Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // Check authentication
+      document.addEventListener("DOMContentLoaded", function () {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          window.location.href = "login.html";
+          return;
+        }
+
+        // Initialize view mode
+        document.getElementById("profileSection").classList.add("view-mode");
+
+        loadUserProfile();
+        setupEventListeners();
+      });
+
+      // Parse JWT token to get user data
+      function parseJwt(token) {
+        try {
+          return JSON.parse(atob(token.split(".")[1]));
+        } catch (e) {
+          console.error("Error parsing JWT:", e);
           return null;
+        }
       }
-  }
 
-  const token = localStorage.getItem('token');
-  const payload = token ? parseJwt(token) : null;
-  if (payload) {
-      document.getElementById('username').textContent = payload.username || '(unknown)';
-      document.getElementById('email').textContent = payload.email || '(not available)';
-  } else {
-      document.getElementById('username').textContent = '(unknown)';
-      document.getElementById('email').textContent = '(not available)';
-  }
+      // Load user profile data
+      function loadUserProfile() {
+        const token = localStorage.getItem("token");
+        const payload = parseJwt(token);
 
-  // Logout functionality
-  document.getElementById('logoutBtn').addEventListener('click', function(e) {
-      e.preventDefault();
-      localStorage.removeItem('token');
-      window.location.href = 'main.html?logout=success';
-  });
-  document.getElementById('logoutBtnMain').addEventListener('click', function(e) {
-      e.preventDefault();
-      localStorage.removeItem('token');
-      window.location.href = 'main.html?logout=success';
-  });
+        if (payload) {
+          document.getElementById("usernameDisplay").textContent =
+            payload.username || "Not available";
+          document.getElementById("emailDisplay").textContent =
+            payload.email || "Not available";
+          document.getElementById("username").value = payload.username || "";
+          document.getElementById("email").value = payload.email || "";
+        } else {
+          showAlert("Error loading profile data", "danger");
+        }
+      }
 
+      // Setup event listeners
+      function setupEventListeners() {
+        // Profile editing
+        document
+          .getElementById("editProfileBtn")
+          .addEventListener("click", enableEditMode);
+        document
+          .getElementById("cancelEditBtn")
+          .addEventListener("click", disableEditMode);
+        document
+          .getElementById("profileForm")
+          .addEventListener("submit", handleProfileUpdate);
 
-  // Sidebar toggle
-  function toggleSidebar() {
-      const sidebar = document.getElementById("sidebar");
-      sidebar.style.left = sidebar.style.left === "0px" ? "-260px" : "0px";
-  }
+        // Password change
+        document
+          .getElementById("passwordForm")
+          .addEventListener("submit", handlePasswordChange);
 
-  //Theme switcher
-  const modeToggleBtn = document.getElementById("modeToggle");
-  modeToggleBtn.addEventListener("click", toggleMode);
+        // Account deletion
+        document
+          .getElementById("confirmDeleteBtn")
+          .addEventListener("click", handleAccountDeletion);
 
-  function toggleMode() {
-    document.body.classList.toggle("dark-mode");
-    const isDarkMode = document.body.classList.contains("dark-mode");
-    localStorage.setItem("darkMode", isDarkMode);
-  }
+        // Real-time validation
+        setupValidation();
+      }
 
-  function themeSwitcher() {
-    if (localStorage.getItem("darkMode") === "true") {
-      document.body.classList.add("dark-mode");
-      document.getElementById("modeToggle").checked = true;
-    } else {
-      document.body.classList.remove("dark-mode");
-      document.getElementById("modeToggle").checked = false;
-    }
-  }
-  themeSwitcher();
-  </script>
-</body>
+      // Enable edit mode for profile
+      function enableEditMode() {
+        document.getElementById("profileSection").classList.add("edit-mode");
+        document.getElementById("profileSection").classList.remove("view-mode");
+      }
+
+      // Disable edit mode for profile
+      function disableEditMode() {
+        document.getElementById("profileSection").classList.remove("edit-mode");
+        document.getElementById("profileSection").classList.add("view-mode");
+
+        // Reset form validation
+        const form = document.getElementById("profileForm");
+        form.classList.remove("was-validated");
+        form.querySelectorAll(".is-invalid, .is-valid").forEach((el) => {
+          el.classList.remove("is-invalid", "is-valid");
+        });
+
+        // Reload original data
+        loadUserProfile();
+      }
+
+      // Handle profile update
+      async function handleProfileUpdate(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        if (!form.checkValidity()) {
+          form.classList.add("was-validated");
+          return;
+        }
+
+        const saveBtn = document.getElementById("saveProfileBtn");
+        saveBtn.classList.add("loading");
+        saveBtn.disabled = true;
+
+        try {
+          const response = await fetch("http://localhost:5000/update-profile", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              username: document.getElementById("username").value,
+              email: document.getElementById("email").value,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showAlert("Profile updated successfully!", "success");
+
+            // Update token if provided
+            if (data.token) {
+              localStorage.setItem("token", data.token);
+            }
+
+            loadUserProfile();
+            disableEditMode();
+          } else {
+            showAlert(data.message || "Failed to update profile", "danger");
+          }
+        } catch (error) {
+          console.error("Profile update error:", error);
+          showAlert("Network error. Please try again.", "danger");
+        } finally {
+          saveBtn.classList.remove("loading");
+          saveBtn.disabled = false;
+        }
+      }
+
+      // Handle password change
+      async function handlePasswordChange(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const currentPassword =
+          document.getElementById("currentPassword").value;
+        const newPassword = document.getElementById("newPassword").value;
+        const confirmPassword =
+          document.getElementById("confirmPassword").value;
+
+        // Validate passwords
+        let isValid = true;
+
+        if (newPassword.length < 8) {
+          document.getElementById("newPassword").classList.add("is-invalid");
+          isValid = false;
+        } else {
+          document.getElementById("newPassword").classList.remove("is-invalid");
+          document.getElementById("newPassword").classList.add("is-valid");
+        }
+
+        if (newPassword !== confirmPassword) {
+          document
+            .getElementById("confirmPassword")
+            .classList.add("is-invalid");
+          isValid = false;
+        } else {
+          document
+            .getElementById("confirmPassword")
+            .classList.remove("is-invalid");
+          document.getElementById("confirmPassword").classList.add("is-valid");
+        }
+
+        if (!isValid) return;
+
+        const changeBtn = document.getElementById("changePasswordBtn");
+        changeBtn.classList.add("loading");
+        changeBtn.disabled = true;
+
+        try {
+          const response = await fetch(
+            "http://localhost:5000/change-password",
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+              body: JSON.stringify({
+                currentPassword,
+                newPassword,
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showAlert("Password changed successfully!", "success");
+            form.reset();
+            form
+              .querySelectorAll(".is-valid")
+              .forEach((el) => el.classList.remove("is-valid"));
+          } else {
+            showAlert(data.message || "Failed to change password", "danger");
+          }
+        } catch (error) {
+          console.error("Password change error:", error);
+          showAlert("Network error. Please try again.", "danger");
+        } finally {
+          changeBtn.classList.remove("loading");
+          changeBtn.disabled = false;
+        }
+      }
+
+      // Handle account deletion
+      async function handleAccountDeletion() {
+        const password = document.getElementById("deleteConfirmPassword").value;
+
+        if (!password) {
+          showAlert("Please enter your password to confirm deletion", "danger");
+          return;
+        }
+
+        try {
+          const response = await fetch("http://localhost:5000/delete-account", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({ password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            showAlert(
+              "Account deleted successfully. Redirecting...",
+              "success"
+            );
+
+            setTimeout(() => {
+              window.location.href = "login.html";
+            }, 2000);
+          } else {
+            showAlert(data.message || "Failed to delete account", "danger");
+          }
+        } catch (error) {
+          console.error("Account deletion error:", error);
+          showAlert("Network error. Please try again.", "danger");
+        }
+      }
+
+      // Setup form validation
+      function setupValidation() {
+        // Username validation
+        document
+          .getElementById("username")
+          .addEventListener("input", function () {
+            if (this.value.length >= 3) {
+              this.classList.remove("is-invalid");
+              this.classList.add("is-valid");
+            } else {
+              this.classList.remove("is-valid");
+              this.classList.add("is-invalid");
+            }
+          });
+
+        // Email validation
+        document.getElementById("email").addEventListener("input", function () {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (emailRegex.test(this.value)) {
+            this.classList.remove("is-invalid");
+            this.classList.add("is-valid");
+          } else {
+            this.classList.remove("is-valid");
+            this.classList.add("is-invalid");
+          }
+        });
+
+        // Password validation
+        document
+          .getElementById("newPassword")
+          .addEventListener("input", function () {
+            if (this.value.length >= 8) {
+              this.classList.remove("is-invalid");
+              this.classList.add("is-valid");
+            } else {
+              this.classList.remove("is-valid");
+              this.classList.add("is-invalid");
+            }
+
+            // Check confirm password if it has value
+            const confirmPassword = document.getElementById("confirmPassword");
+            if (confirmPassword.value) {
+              if (this.value === confirmPassword.value) {
+                confirmPassword.classList.remove("is-invalid");
+                confirmPassword.classList.add("is-valid");
+              } else {
+                confirmPassword.classList.remove("is-valid");
+                confirmPassword.classList.add("is-invalid");
+              }
+            }
+          });
+
+        document
+          .getElementById("confirmPassword")
+          .addEventListener("input", function () {
+            const newPassword = document.getElementById("newPassword").value;
+            if (this.value === newPassword && newPassword.length >= 8) {
+              this.classList.remove("is-invalid");
+              this.classList.add("is-valid");
+            } else {
+              this.classList.remove("is-valid");
+              this.classList.add("is-invalid");
+            }
+          });
+      }
+
+      // Show alert messages
+      function showAlert(message, type = "info") {
+        const alertContainer = document.getElementById("alertContainer");
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+                <i class="bi bi-${
+                  type === "success"
+                    ? "check-circle"
+                    : type === "danger"
+                    ? "exclamation-triangle"
+                    : "info-circle"
+                } me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+        alertContainer.innerHTML = "";
+        alertContainer.appendChild(alertDiv);
+
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            const bsAlert = new bootstrap.Alert(alertDiv);
+            bsAlert.close();
+          }
+        }, 5000);
+      }
+    </script>
+  </body>
 </html>
