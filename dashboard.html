@@ -11,6 +11,14 @@
     <!-- Dashboard Styles -->
     <link href="dashboard-styles.css" rel="stylesheet">
     <style>
+        /* Modal stacking styles */
+        .stacked-modal {
+            z-index: 1060 !important; /* Higher than default Bootstrap modal z-index */
+        }
+        .stacked-modal + .modal-backdrop {
+            z-index: 1059 !important; /* Just below the stacked modal */
+        }
+        
         /* Custom CSS Variables for Light/Dark Mode */
         :root {
           --primary-accent: #7b34d2; /* Main accent color */
@@ -606,7 +614,7 @@
                 <!-- User Profile Dropdown -->
                 <div class="dropdown">
                     <a href="#" class="d-flex align-items-center text-reset dropdown-toggle hidden-arrow" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="https://ui-avatars.com/api/?name=User&background=7b34d2&color=fff" class="user-avatar" alt="User Avatar">
+                        <img src="https://ui-avatars.com/api/?background=7b34d2&color=fff" class="user-avatar" alt="User Avatar">
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         <li><a class="dropdown-item" href="account.html"><i class="bi bi-person me-2"></i>Profile</a></li>
@@ -801,7 +809,7 @@
                         <div class="mb-3">
                             <label for="taskAttachment" class="form-label">
                                 Attachments
-                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="openFileViewingModal(event)" title="File viewing guide">
                                     <i class="bi bi-question-circle"></i>
                                 </button>
                             </label>
@@ -881,7 +889,7 @@
                         <div class="mb-3">
                             <label for="editTaskAttachment" class="form-label">
                                 Attachments
-                                <button type="button" class="btn btn-sm btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#fileViewingHelpModal" title="File viewing guide">
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="openFileViewingModal(event)" title="File viewing guide">
                                     <i class="bi bi-question-circle"></i>
                                 </button>
                             </label>
@@ -997,14 +1005,14 @@
     </div>
 
     <!-- File Viewing Help Modal -->
-    <div class="modal fade" id="fileViewingHelpModal" tabindex="-1" aria-labelledby="fileViewingHelpModalLabel" aria-hidden="true">
+    <div class="modal fade stacked-modal" id="fileViewingHelpModal" tabindex="-1" aria-labelledby="fileViewingHelpModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="fileViewingHelpModalLabel">
                         <i class="bi bi-question-circle me-2"></i>File Viewing Guide
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" onclick="closeFileViewingModal()" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
@@ -1041,8 +1049,17 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeFileViewingModal()">Close</button>
                 </div>
+                <script>
+                    // Prevent backdrop click from closing modal
+                    document.getElementById('fileViewingHelpModal').addEventListener('click', function(event) {
+                        if (event.target === this) {
+                            event.stopPropagation();
+                            closeFileViewingModal();
+                        }
+                    });
+                </script>
             </div>
         </div>
     </div>
@@ -1054,6 +1071,55 @@
     <script src="dashboard.js"></script>
     
     <script>
+        // Keep track of open modals
+        let openModals = [];
+        
+        // Function to open the file viewing modal on top of other modals
+        function openFileViewingModal(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Store currently open modals
+            document.querySelectorAll('.modal.show').forEach(modal => {
+                if (modal.id !== 'fileViewingHelpModal' && !openModals.includes(modal.id)) {
+                    openModals.push(modal.id);
+                }
+            });
+            
+            // Open the file viewing modal
+            const fileViewingModal = new bootstrap.Modal(document.getElementById('fileViewingHelpModal'));
+            fileViewingModal.show();
+        }
+        
+        // Function to close only the file viewing modal and restore previous modals
+        function closeFileViewingModal() {
+            const fileViewingModal = document.getElementById('fileViewingHelpModal');
+            const bsModal = bootstrap.Modal.getInstance(fileViewingModal);
+            if (bsModal) {
+                bsModal.hide();
+                
+                // Add event listener for when the modal is fully hidden
+                fileViewingModal.addEventListener('hidden.bs.modal', function onHidden() {
+                    // Remove the event listener to prevent memory leaks
+                    fileViewingModal.removeEventListener('hidden.bs.modal', onHidden);
+                    
+                    // Re-open the previous modals
+                    if (openModals.length > 0) {
+                        openModals.forEach(modalId => {
+                            const modal = document.getElementById(modalId);
+                            if (modal) {
+                                modal.classList.add('show');
+                                modal.style.display = 'block';
+                                document.body.classList.add('modal-open');
+                            }
+                        });
+                        // Clear the open modals array
+                        openModals = [];
+                    }
+                }, { once: true });
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const darkModeSwitch = document.getElementById('darkModeSwitch');
             const htmlElement = document.documentElement;

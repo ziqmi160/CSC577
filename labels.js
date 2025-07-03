@@ -1217,6 +1217,30 @@ function showDocumentPreview(docUrl, fileName) {
   modal.show();
 }
 
+// --- Display User Info ---
+function displayUserInfo() {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (user.username) {
+    // Update user avatar if it exists
+    const userAvatar = document.querySelector(".user-avatar");
+    if (userAvatar) {
+      // Use only the first letter of the username
+      const firstLetter = user.username.charAt(0).toUpperCase();
+      userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        firstLetter
+      )}&background=7b34d2&color=fff`;
+      userAvatar.title = `Logged in as ${user.username}`;
+    }
+
+    // Update any username displays
+    const usernameElements = document.querySelectorAll(".username-display");
+    usernameElements.forEach((el) => {
+      el.textContent = user.username;
+    });
+  }
+}
+
 // --- Initialize Page ---
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("Labels page loaded, initializing...");
@@ -1225,6 +1249,9 @@ document.addEventListener("DOMContentLoaded", async function () {
   if (!checkAuth()) {
     return;
   }
+
+  // Display user info
+  displayUserInfo();
 
   // Load all tasks from backend
   await loadAllTasks();

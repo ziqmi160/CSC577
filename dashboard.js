@@ -1300,8 +1300,10 @@ function displayUserInfo() {
     // Update user avatar if it exists
     const userAvatar = document.querySelector(".user-avatar");
     if (userAvatar) {
+      // Use only the first letter of the username
+      const firstLetter = user.username.charAt(0).toUpperCase();
       userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        user.username
+        firstLetter
       )}&background=7b34d2&color=fff`;
       userAvatar.title = `Logged in as ${user.username}`;
     }

@@ -1190,6 +1190,30 @@ function displayErrorMessage(message) {
   }, 5000);
 }
 
+// --- Display User Info ---
+function displayUserInfo() {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  if (user.username) {
+    // Update user avatar if it exists
+    const userAvatar = document.querySelector(".user-avatar");
+    if (userAvatar) {
+      // Use only the first letter of the username
+      const firstLetter = user.username.charAt(0).toUpperCase();
+      userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        firstLetter
+      )}&background=7b34d2&color=fff`;
+      userAvatar.title = `Logged in as ${user.username}`;
+    }
+
+    // Update any username displays
+    const usernameElements = document.querySelectorAll(".username-display");
+    usernameElements.forEach((el) => {
+      el.textContent = user.username;
+    });
+  }
+}
+
 // --- Initialization ---
 document.addEventListener("DOMContentLoaded", function () {
   console.log("Scheduled tasks page DOM loaded, initializing...");
@@ -1201,6 +1225,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   console.log("Authentication successful");
+
+  // Display user info
+  displayUserInfo();
 
   // Load scheduled tasks from backend
   loadScheduledTasks();
