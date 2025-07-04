@@ -1901,16 +1901,26 @@ function showDocumentPreview(docUrl, fileName) {
 }
 
 function setupLogoutHandler() {
-  // Look for logout buttons or links
-  const logoutElements = document.querySelectorAll('[data-action="logout"], .logout-btn, .bi-box-arrow-right');
+  console.log("Setting up logout handler...");
+  
+  // Wait a bit for Bootstrap to initialize
+  setTimeout(() => {
+    // Look for logout buttons or links with multiple selectors
+    const logoutElements = document.querySelectorAll('a[href="#"] .bi-box-arrow-right, .dropdown-item:has(.bi-box-arrow-right), a:has(.bi-box-arrow-right)');
+    console.log("Found logout elements:", logoutElements.length);
+    
   logoutElements.forEach((element) => {
+      console.log("Adding click listener to:", element);
     element.addEventListener("click", (e) => {
+        console.log("Logout element clicked!");
       e.preventDefault();
+        e.stopPropagation();
       if (confirm("Are you sure you want to logout?")) {
         handleLogout();
       }
     });
   });
+    
   // Also handle if logout is in a parent element
   document.addEventListener("click", (e) => {
     if (
@@ -1919,11 +1929,14 @@ function setupLogoutHandler() {
     ) {
       const parentLink = e.target.closest("a");
       if (parentLink && parentLink.href.includes("#")) {
+          console.log("Logout link clicked via delegation!");
         e.preventDefault();
+          e.stopPropagation();
         if (confirm("Are you sure you want to logout?")) {
           handleLogout();
         }
       }
     }
   });
+  }, 200);
 }
