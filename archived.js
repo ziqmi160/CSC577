@@ -9,6 +9,8 @@ let actionInProgress = new Set(); // Track actions in progress to prevent confli
 let allArchivedTasks = []; // Store all archived tasks for filtering
 let currentSearchQuery = null; // Track current search query for semantic search
 let currentSortOption = "date-newest"; // Track current sort option
+let selectedFiles = []; // Store selected files for upload
+let editExistingAttachments = []; // Store existing attachments when editing
 
 // --- Authentication Functions ---
 function checkAuth() {
@@ -379,13 +381,19 @@ async function handleArchivedTaskActions(e) {
 
 // --- Task Details Modal Functions (reused from dashboard) ---
 function openTaskDetailsModal(card) {
+  // Parse tags and attachments from dataset
+  const tags = card.dataset.tags ? card.dataset.tags.split(',').filter(tag => tag.trim()) : [];
+  const attachments = card.dataset.attachment ? card.dataset.attachment.split(',').filter(att => att.trim()) : [];
+  
   const taskData = {
     title: card.dataset.title,
     description: card.dataset.description,
     dueDate: card.dataset.dueDate,
     priority: card.dataset.priority,
-    tags: card.dataset.tags,
-    attachment: card.dataset.attachment,
+    tags: card.dataset.tags, // Keep as string for display purposes
+    attachment: card.dataset.attachment, // Keep as string for display purposes
+    label: tags, // Add as array for edit modal
+    attachmentArray: attachments, // Add as array for edit modal
     created: card.dataset.created,
     archived: card.dataset.archived,
     taskId: card.dataset.taskId,
@@ -537,10 +545,49 @@ function updateModalButtons(taskId, isArchived) {
       archiveBtn.onclick = () => restoreTaskFromModal(taskId);
     }
 
-    // Disable edit for archived tasks
+    // Enable edit for archived tasks
     if (editBtn) {
-      editBtn.disabled = true;
-      editBtn.classList.add("disabled");
+      editBtn.disabled = false;
+      editBtn.classList.remove("disabled");
+      editBtn.onclick = () => {
+        console.log("Edit button clicked for archived task ID:", taskId);
+        // Close modal first
+        bootstrap.Modal.getInstance(
+          document.getElementById("taskDetailsModal")
+        ).hide();
+
+        // Wait for modal to close, then open edit modal
+        setTimeout(() => {
+          // Get the task data from the modal
+          const modalElement = document.getElementById("taskDetailsModal");
+          const taskId = modalElement.getAttribute("data-task-id");
+          
+          // Find the original card to get the original data
+          const originalCard = document.querySelector(`[data-task-id="${taskId}"]`);
+          if (!originalCard) {
+            console.error("Card not found for task ID:", taskId);
+            return;
+          }
+          
+          const taskData = {
+            taskId: taskId,
+            title: document.getElementById("taskDetailsTitle").textContent.replace(/^\s*✓\s*/, ''), // Remove checkmark
+            description: document.getElementById("taskDetailsDescription").textContent,
+            dueDate: originalCard.dataset.dueDate || "", // Use original due date from card
+            priority: document.getElementById("taskDetailsPriority").textContent.replace(" Priority", ""),
+            label: [], // Will be populated from card data
+            attachment: [], // Will be populated from card data
+          };
+          
+          // Get tags and attachments from the original card
+          const tags = originalCard.dataset.tags ? originalCard.dataset.tags.split(',').filter(tag => tag.trim()) : [];
+          const attachments = originalCard.dataset.attachment ? originalCard.dataset.attachment.split(',').filter(att => att.trim()) : [];
+          taskData.label = tags;
+          taskData.attachment = attachments;
+          
+          openEditTaskModal(taskData);
+        }, 300);
+      };
     }
   } else {
     // For active tasks, keep normal functionality
@@ -552,6 +599,45 @@ function updateModalButtons(taskId, isArchived) {
     if (editBtn) {
       editBtn.disabled = false;
       editBtn.classList.remove("disabled");
+      editBtn.onclick = () => {
+        console.log("Edit button clicked for active task ID:", taskId);
+        // Close modal first
+        bootstrap.Modal.getInstance(
+          document.getElementById("taskDetailsModal")
+        ).hide();
+
+        // Wait for modal to close, then open edit modal
+        setTimeout(() => {
+          // Get the task data from the modal
+          const modalElement = document.getElementById("taskDetailsModal");
+          const taskId = modalElement.getAttribute("data-task-id");
+          
+          // Find the original card to get the original data
+          const originalCard = document.querySelector(`[data-task-id="${taskId}"]`);
+          if (!originalCard) {
+            console.error("Card not found for task ID:", taskId);
+            return;
+          }
+          
+          const taskData = {
+            taskId: taskId,
+            title: document.getElementById("taskDetailsTitle").textContent,
+            description: document.getElementById("taskDetailsDescription").textContent,
+            dueDate: originalCard.dataset.dueDate || "", // Use original due date from card
+            priority: document.getElementById("taskDetailsPriority").textContent.replace(" Priority", ""),
+            label: [], // Will be populated from card data
+            attachment: [], // Will be populated from card data
+          };
+          
+          // Get tags and attachments from the original card
+          const tags = originalCard.dataset.tags ? originalCard.dataset.tags.split(',').filter(tag => tag.trim()) : [];
+          const attachments = originalCard.dataset.attachment ? originalCard.dataset.attachment.split(',').filter(att => att.trim()) : [];
+          taskData.label = tags;
+          taskData.attachment = attachments;
+          
+          openEditTaskModal(taskData);
+        }, 300);
+      };
     }
   }
 }
@@ -1101,18 +1187,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // Setup sort functionality
   setupSortFunctionality();
 
-  const restoreBtn = document.getElementById("restoreTaskBtn");
-  if (restoreBtn) {
-    restoreBtn.addEventListener("click", function () {
-      const modal = document.getElementById("taskDetailsModal");
-      if (modal) {
-        const taskId = modal.getAttribute("data-task-id");
-        if (taskId) {
-          restoreTaskFromModal(taskId);
-        }
-      }
-    });
-  }
+  // Setup edit task functionality
+  setupEditTaskForm();
+  setupTagFunctionality();
+  setupFileAttachmentHandlers();
 
   setupLogoutHandler();
 });
@@ -1272,3 +1350,408 @@ function setupLogoutHandler() {
     }
   });
 }
+
+// --- Edit Task Modal Functions ---
+
+function openEditTaskModal(taskData) {
+  console.log("Opening edit modal for task:", taskData);
+  console.log("Task ID:", taskData.taskId);
+  console.log("Task title:", taskData.title);
+
+  // Reset file state
+  selectedFiles = [];
+  editExistingAttachments = taskData.attachment && Array.isArray(taskData.attachment) ? [...taskData.attachment] : [];
+
+  // Store task ID for form submission
+  window.currentEditTaskId = taskData.taskId;
+
+  // Pre-fill form fields
+  const titleField = document.getElementById("editTaskTitle");
+  const descriptionField = document.getElementById("editTaskDescription");
+  const dueDateField = document.getElementById("editTaskDueDate");
+  const priorityField = document.getElementById("editTaskPriority");
+
+  if (titleField) titleField.value = taskData.title || "";
+  if (descriptionField) descriptionField.value = taskData.description || "";
+  if (dueDateField) dueDateField.value = taskData.dueDate || "";
+  if (priorityField) priorityField.value = taskData.priority || "Medium";
+
+  // Handle tags - populate tag container
+  const editTagContainer = document.getElementById("editTagContainer");
+  const editTagInput = document.getElementById("editTagInput");
+  
+  if (editTagContainer) {
+    editTagContainer.innerHTML = "";
+    if (taskData.label && Array.isArray(taskData.label)) {
+      taskData.label.forEach(tag => {
+        addTagToContainer(tag, editTagContainer, "edit");
+      });
+    }
+  }
+  
+  if (editTagInput) {
+    editTagInput.value = "";
+  }
+
+  // Handle attachments - render attachment list
+  const editTaskAttachment = document.getElementById("editTaskAttachment");
+  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
+  
+  if (editTaskAttachment) {
+    editTaskAttachment.value = "";
+  }
+  
+  if (editAttachmentContainer) {
+    renderAttachmentList(editAttachmentContainer, selectedFiles, editExistingAttachments);
+  }
+
+  // Populate existing tags dropdown
+  populateExistingTagsDropdown();
+
+  // Show the modal
+  const editModal = document.getElementById("editTaskModal");
+  if (editModal) {
+    const modal = new bootstrap.Modal(editModal);
+    modal.show();
+  }
+
+  console.log("Edit modal opened successfully");
+}
+
+// Helper function to add tag to container
+function addTagToContainer(tagText, container, prefix = "") {
+  if (!tagText || !container) return;
+  
+  const tagBadge = document.createElement("span");
+  tagBadge.className = "badge bg-secondary me-1 mb-1";
+  tagBadge.innerHTML = `${tagText} <i class="bi bi-x" style="cursor: pointer;"></i>`;
+  
+  // Add click handler to remove tag
+  const removeIcon = tagBadge.querySelector("i");
+  if (removeIcon) {
+    removeIcon.addEventListener("click", function() {
+      container.removeChild(tagBadge);
+    });
+  }
+  
+  container.appendChild(tagBadge);
+}
+
+// Render attachment list
+function renderAttachmentList(container, newFiles = [], existingAttachments = []) {
+  console.log("renderAttachmentList called with:", { newFiles, existingAttachments });
+  if (!container) return;
+  
+  container.innerHTML = "";
+
+  // Show existing attachments (when editing)
+  existingAttachments.forEach((url, idx) => {
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi bi-file-earmark me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = url.split("/").pop();
+
+    const viewableExtensions = [
+      "pdf", "txt", "html", "htm", "css", "js", "json", "xml", "csv", "md",
+      "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico",
+      "mp3", "wav", "ogg", "mp4", "webm", "py", "java", "cpp", "c", "php", "rb", "go", "rs", "swift", "kt", "yaml", "yml", "toml", "ini", "conf", "log", "woff", "woff2", "ttf", "eot"
+    ];
+    const canView = viewableExtensions.includes(url.split(".").pop()?.toLowerCase());
+
+    const actionDiv = document.createElement("div");
+    actionDiv.className = "d-flex gap-1";
+
+    if (canView) {
+      const viewBtn = document.createElement("button");
+      viewBtn.type = "button";
+      viewBtn.className = "btn btn-sm btn-outline-primary";
+      viewBtn.innerHTML = '<i class="bi bi-eye"></i>';
+      viewBtn.onclick = () => previewFile(`${API_BASE_URL}${url}`, url.split("/").pop());
+      actionDiv.appendChild(viewBtn);
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = () => {
+      editExistingAttachments.splice(idx, 1);
+      renderAttachmentList(container, selectedFiles, editExistingAttachments);
+    };
+    actionDiv.appendChild(deleteBtn);
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(actionDiv);
+    container.appendChild(div);
+  });
+
+  // Show new files
+  newFiles.forEach((file, idx) => {
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi bi-file-earmark me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = file.name;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = () => {
+      selectedFiles.splice(idx, 1);
+      renderAttachmentList(container, selectedFiles, editExistingAttachments);
+    };
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
+  });
+}
+
+// Preview file function
+function previewFile(url, fileName) {
+  const fileExt = fileName.split('.').pop()?.toLowerCase();
+  
+  if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(fileExt)) {
+    showImagePreview(url, fileName);
+  } else if (["mp3", "wav", "ogg", "mp4", "webm"].includes(fileExt)) {
+    showMediaPreview(url, fileName, fileExt);
+  } else {
+    showDocumentPreview(url, fileName);
+  }
+}
+
+// Populate existing tags dropdown from all tasks
+function populateExistingTagsDropdown() {
+  const existingTagsDropdown = document.getElementById("editExistingTagsDropdown");
+  if (!existingTagsDropdown) return;
+  
+  // Reset dropdown
+  existingTagsDropdown.innerHTML = '<option value="">Select existing tag</option>';
+  
+  // Collect all unique tags from tasks
+  const allTags = new Set();
+  
+  if (allArchivedTasks && Array.isArray(allArchivedTasks)) {
+    allArchivedTasks.forEach(task => {
+      if (task.label && Array.isArray(task.label)) {
+        task.label.forEach(tag => {
+          if (tag && tag.trim()) {
+            allTags.add(tag.trim());
+          }
+        });
+      }
+    });
+  }
+  
+  // Add options to dropdown
+  Array.from(allTags).sort().forEach(tag => {
+    const option = document.createElement("option");
+    option.value = tag;
+    option.textContent = tag;
+    existingTagsDropdown.appendChild(option);
+  });
+}
+
+// Setup tag functionality
+function setupTagFunctionality() {
+  const editTagInput = document.getElementById("editTagInput");
+  const editAddTagBtn = document.getElementById("editAddTagBtn");
+  const editExistingTagsDropdown = document.getElementById("editExistingTagsDropdown");
+  const editTagContainer = document.getElementById("editTagContainer");
+
+  if (editTagInput && editAddTagBtn) {
+    editAddTagBtn.addEventListener("click", () => {
+      addTagFromInput(editTagInput, editTagContainer);
+    });
+
+    editTagInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addTagFromInput(editTagInput, editTagContainer);
+      }
+    });
+  }
+
+  if (editExistingTagsDropdown) {
+    editExistingTagsDropdown.addEventListener("change", (e) => {
+      if (e.target.value && editTagContainer) {
+        addTagToContainer(e.target.value, editTagContainer, "edit");
+        e.target.value = "";
+      }
+    });
+  }
+}
+
+// Add tag from input
+function addTagFromInput(input, container) {
+  const tagText = input.value.trim();
+  if (tagText && container) {
+    addTagToContainer(tagText, container, "edit");
+    input.value = "";
+  }
+}
+
+// Setup file attachment handlers
+function setupFileAttachmentHandlers() {
+  const fileInput = document.getElementById("editTaskAttachment");
+  const attachmentContainer = document.getElementById("editAttachmentContainer");
+  const fileLabel = document.querySelector('label[for="editTaskAttachment"]');
+  
+  if (fileInput && attachmentContainer) {
+    fileInput.addEventListener("change", function(e) {
+      console.log("File input change event triggered");
+      console.log("Selected files:", e.target.files);
+      selectedFiles = Array.from(e.target.files);
+      renderAttachmentList(attachmentContainer, selectedFiles, editExistingAttachments);
+    });
+  }
+  
+  // Add click handler to the label to ensure file input is triggered
+  if (fileLabel) {
+    fileLabel.addEventListener("click", function(e) {
+      console.log("File label clicked");
+      if (fileInput) {
+        fileInput.click();
+      }
+    });
+  }
+}
+
+// Upload files to server
+async function uploadFiles(files) {
+  if (!files.length) return [];
+
+  try {
+    console.log("Starting file upload for", files.length, "files");
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+      console.log("Added file to FormData:", file.name, file.size);
+    });
+
+    const token = localStorage.getItem("token");
+    console.log("Token available:", !!token);
+
+    const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("Upload response status:", uploadResponse.status);
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("Upload error response:", errorText);
+      throw new Error(
+        `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
+      );
+    }
+
+    const data = await uploadResponse.json();
+    console.log("Upload success, files:", data.files);
+    return data.files; // Array of URLs
+  } catch (error) {
+    console.error("File upload error:", error);
+    displayErrorMessage(`Failed to upload files: ${error.message}`);
+    throw error;
+  }
+}
+
+// Setup edit task form
+function setupEditTaskForm() {
+  const editTaskForm = document.getElementById("editTaskForm");
+  
+  if (editTaskForm) {
+    editTaskForm.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      
+      const taskId = window.currentEditTaskId;
+      if (!taskId) {
+        displayErrorMessage("No task ID found for editing");
+        return;
+      }
+
+      try {
+        // Get form data
+        const title = document.getElementById("editTaskTitle").value.trim();
+        const description = document.getElementById("editTaskDescription").value.trim();
+        const dueDate = document.getElementById("editTaskDueDate").value;
+        const priority = document.getElementById("editTaskPriority").value;
+        
+        // Get tags from container
+        const tagContainer = document.getElementById("editTagContainer");
+        const tags = Array.from(tagContainer.querySelectorAll(".badge"))
+          .map(tag => tag.textContent.trim())
+          .filter(tag => tag);
+        
+        // Handle file uploads
+        let allAttachments = [...editExistingAttachments]; // Start with existing attachments
+        
+        if (selectedFiles.length > 0) {
+          try {
+            const uploadedFiles = await uploadFiles(selectedFiles);
+            allAttachments = [...allAttachments, ...uploadedFiles];
+          } catch (error) {
+            console.error("Failed to upload files:", error);
+            displayErrorMessage("Failed to upload some files. Please try again.");
+            return;
+          }
+        }
+
+        const updateData = {
+          title,
+          description,
+          dueDate,
+          priority,
+          label: tags,
+          attachment: allAttachments
+        };
+
+        // Update task via API
+        await apiFetch(`/tasks/${taskId}`, {
+          method: "PATCH",
+          body: JSON.stringify(updateData),
+        });
+
+        displaySuccessMessage("Task updated successfully!");
+
+        // Hide modal
+        const modal = document.getElementById("editTaskModal");
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        bootstrapModal.hide();
+
+        // Reset file state
+        selectedFiles = [];
+        editExistingAttachments = [];
+
+        // Reload tasks
+        await loadArchivedTasks();
+
+      } catch (error) {
+        console.error("Failed to update task:", error);
+        displayErrorMessage("Failed to update task. Please try again.");
+      }
+    });
+  }
+}
+
+

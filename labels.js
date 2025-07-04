@@ -7,6 +7,8 @@ const API_BASE_URL = "http://localhost:5000";
 let allTasks = []; // Store all tasks for filtering
 let currentSelectedLabel = null; // Track currently selected label
 let currentSearchQuery = null; // Track current search query for semantic search
+let selectedFiles = []; // Store selected files for upload
+let editExistingAttachments = []; // Store existing attachments when editing
 
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
 
@@ -122,6 +124,9 @@ async function loadAllTasks() {
 
     // Update statistics
     updateStatistics();
+    
+    // Update existing tags dropdown
+    populateExistingTagsDropdown();
   } catch (error) {
     console.error("Failed to load tasks:", error);
     allTasks = [];
@@ -1003,6 +1008,10 @@ function openEditModal(task) {
     return;
   }
 
+  // Reset file state
+  selectedFiles = [];
+  editExistingAttachments = task.attachment && Array.isArray(task.attachment) ? [...task.attachment] : [];
+
   // Populate form with task data
   const form = modal.querySelector("form");
   if (form) {
@@ -1010,25 +1019,369 @@ function openEditModal(task) {
     form.querySelector("#editTaskDescription").value = task.description || "";
     form.querySelector("#editTaskDueDate").value = task.dueDate || "";
     form.querySelector("#editTaskPriority").value = task.priority || "Low";
-    form.querySelector("#editTaskTags").value = task.label
-      ? task.label.join(", ")
-      : "";
-
-    // Update current attachment display
-    const currentAttachment = modal.querySelector("#currentAttachment");
-    if (currentAttachment) {
-      currentAttachment.textContent = task.attachment
-        ? `Current: ${task.attachment}`
-        : "Current: no attachment";
+    
+    // Clear existing tags and populate with task tags
+    const tagContainer = document.getElementById("editTagContainer");
+    if (tagContainer) {
+      tagContainer.innerHTML = "";
+      if (task.label && Array.isArray(task.label)) {
+        task.label.forEach(tag => {
+          addTagToContainer(tag, tagContainer, "edit");
+        });
+      }
+    }
+    
+    // Clear existing attachments and populate with task attachments
+    const attachmentContainer = document.getElementById("editAttachmentContainer");
+    if (attachmentContainer) {
+      renderAttachmentList(attachmentContainer, selectedFiles, editExistingAttachments);
     }
   }
 
   // Store task ID for update
   modal.dataset.taskId = task._id;
+  
+  // Populate existing tags dropdown
+  populateExistingTagsDropdown();
 
   // Show the modal
   const bootstrapModal = new bootstrap.Modal(modal);
   bootstrapModal.show();
+}
+
+// --- Tag and Attachment Helper Functions ---
+
+// Add tag to container
+function addTagToContainer(tagText, container, prefix = "") {
+  if (!tagText || !container) return;
+  
+  const tagElement = document.createElement("span");
+  tagElement.className = "badge bg-secondary me-2 mb-2 d-inline-flex align-items-center";
+  tagElement.innerHTML = `
+    ${tagText}
+    <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.5rem;" onclick="removeTag(this)"></button>
+  `;
+  container.appendChild(tagElement);
+}
+
+// Remove tag
+function removeTag(button) {
+  button.closest(".badge").remove();
+}
+
+// Format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
+
+// Setup file attachment handlers
+function setupFileAttachmentHandlers() {
+  const fileInput = document.getElementById("editTaskAttachment");
+  const attachmentContainer = document.getElementById("editAttachmentContainer");
+  
+  if (fileInput && attachmentContainer) {
+    fileInput.addEventListener("change", function(e) {
+      selectedFiles = Array.from(e.target.files);
+      renderAttachmentList(attachmentContainer, selectedFiles, editExistingAttachments);
+    });
+  }
+}
+
+// Render attachment list
+function renderAttachmentList(container, newFiles = [], existingAttachments = []) {
+  if (!container) return;
+  
+  container.innerHTML = "";
+
+  // Show existing attachments (when editing)
+  existingAttachments.forEach((url, idx) => {
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi bi-file-earmark me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = url.split("/").pop();
+
+    const viewableExtensions = [
+      "pdf", "txt", "html", "htm", "css", "js", "json", "xml", "csv", "md",
+      "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico",
+      "mp3", "wav", "ogg", "mp4", "webm", "py", "java", "cpp", "c", "php", "rb", "go", "rs", "swift", "kt", "yaml", "yml", "toml", "ini", "conf", "log", "woff", "woff2", "ttf", "eot"
+    ];
+    const canView = viewableExtensions.includes(url.split(".").pop()?.toLowerCase());
+
+    const actionDiv = document.createElement("div");
+    actionDiv.className = "d-flex gap-1";
+
+    if (canView) {
+      const viewBtn = document.createElement("button");
+      viewBtn.type = "button";
+      viewBtn.className = "btn btn-sm btn-outline-primary";
+      viewBtn.innerHTML = '<i class="bi bi-eye"></i>';
+      viewBtn.onclick = () => previewFile(`${API_BASE_URL}${url}`, url.split("/").pop());
+      actionDiv.appendChild(viewBtn);
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = () => {
+      editExistingAttachments.splice(idx, 1);
+      renderAttachmentList(container, selectedFiles, editExistingAttachments);
+    };
+    actionDiv.appendChild(deleteBtn);
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(actionDiv);
+    container.appendChild(div);
+  });
+
+  // Show new files
+  newFiles.forEach((file, idx) => {
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi bi-file-earmark me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = file.name;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = () => {
+      selectedFiles.splice(idx, 1);
+      renderAttachmentList(container, selectedFiles, editExistingAttachments);
+    };
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
+  });
+}
+
+// Upload files to server
+async function uploadFiles(files) {
+  if (!files.length) return [];
+
+  try {
+    console.log("Starting file upload for", files.length, "files");
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("files", file);
+      console.log("Added file to FormData:", file.name, file.size);
+    });
+
+    const token = localStorage.getItem("token");
+    console.log("Token available:", !!token);
+
+    const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("Upload response status:", uploadResponse.status);
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("Upload error response:", errorText);
+      throw new Error(
+        `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
+      );
+    }
+
+    const data = await uploadResponse.json();
+    console.log("Upload success, files:", data.files);
+    return data.files; // Array of URLs
+  } catch (error) {
+    console.error("File upload error:", error);
+    displayErrorMessage(`Failed to upload files: ${error.message}`);
+    throw error;
+  }
+}
+
+// Preview file
+function previewFile(fileUrl, fileName) {
+  const fileExtension = fileName.split('.').pop()?.toLowerCase();
+  
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(fileExtension)) {
+    showImagePreview(fileUrl, fileName);
+  } else if (['mp4', 'webm', 'mp3', 'wav', 'ogg'].includes(fileExtension)) {
+    showMediaPreview(fileUrl, fileName, fileExtension);
+  } else if (['pdf', 'txt', 'html', 'htm', 'css', 'js', 'json', 'xml', 'csv', 'md'].includes(fileExtension)) {
+    showDocumentPreview(fileUrl, fileName);
+  } else {
+    // Download file
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = fileName;
+    link.click();
+  }
+}
+
+// Populate existing tags dropdown
+function populateExistingTagsDropdown() {
+  const existingTagsDropdown = document.getElementById("editExistingTagsDropdown");
+  if (!existingTagsDropdown) return;
+  
+  // Reset dropdown
+  existingTagsDropdown.innerHTML = '<option value="">Select existing tag</option>';
+  
+  // Collect all unique tags from tasks
+  const allTags = new Set();
+  allTasks.forEach(task => {
+    if (task.label && Array.isArray(task.label)) {
+      task.label.forEach(tag => {
+        if (tag && tag.trim()) {
+          allTags.add(tag.trim());
+        }
+      });
+    }
+  });
+  
+  // Add options for each unique tag
+  Array.from(allTags).sort().forEach(tag => {
+    const option = document.createElement("option");
+    option.value = tag;
+    option.textContent = tag;
+    existingTagsDropdown.appendChild(option);
+  });
+}
+
+// Add tag from input
+function addTagFromInput(input, container) {
+  if (!input || !container) return;
+  
+  const tagText = input.value.trim();
+  if (tagText) {
+    // Split by comma and add each tag
+    const tags = tagText.split(",").map(tag => tag.trim()).filter(tag => tag);
+    tags.forEach(tag => {
+      addTagToContainer(tag, container);
+    });
+    input.value = "";
+  }
+}
+
+// Setup tag functionality
+function setupTagFunctionality() {
+  const editAddTagBtn = document.getElementById("editAddTagBtn");
+  const editTagInput = document.getElementById("editTagInput");
+  const editTagContainer = document.getElementById("editTagContainer");
+  const editExistingTagsDropdown = document.getElementById("editExistingTagsDropdown");
+
+  if (editAddTagBtn && editTagInput && editTagContainer) {
+    editAddTagBtn.addEventListener("click", function() {
+      addTagFromInput(editTagInput, editTagContainer);
+    });
+
+    // Add tag on Enter key
+    editTagInput.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addTagFromInput(editTagInput, editTagContainer);
+      }
+    });
+  }
+
+  // Add tag from existing tags dropdown
+  if (editExistingTagsDropdown && editTagContainer) {
+    editExistingTagsDropdown.addEventListener("change", function() {
+      const selectedTag = this.value;
+      if (selectedTag) {
+        addTagToContainer(selectedTag, editTagContainer, "edit");
+        this.value = ""; // Reset dropdown
+      }
+    });
+  }
+
+  // Setup file attachment handlers
+  setupFileAttachmentHandlers();
+}
+
+// Handle edit task submission
+async function handleEditTaskSubmission(taskId) {
+  try {
+    // Get form data
+    const title = document.getElementById("editTaskTitle").value.trim();
+    const description = document.getElementById("editTaskDescription").value.trim();
+    const dueDate = document.getElementById("editTaskDueDate").value;
+    const priority = document.getElementById("editTaskPriority").value;
+    
+    // Get tags from container
+    const tagContainer = document.getElementById("editTagContainer");
+    const tags = Array.from(tagContainer.querySelectorAll(".badge"))
+      .map(tag => tag.textContent.trim())
+      .filter(tag => tag);
+    
+    // Handle file uploads
+    let allAttachments = [...editExistingAttachments]; // Start with existing attachments
+    
+    if (selectedFiles.length > 0) {
+      try {
+        const uploadedFiles = await uploadFiles(selectedFiles);
+        allAttachments = [...allAttachments, ...uploadedFiles];
+      } catch (error) {
+        console.error("Failed to upload files:", error);
+        displayErrorMessage("Failed to upload some files. Please try again.");
+        return;
+      }
+    }
+
+    const updateData = {
+      title,
+      description,
+      dueDate,
+      priority,
+      label: tags,
+      attachment: allAttachments
+    };
+
+    // Update task via API
+    await apiFetch(`/tasks/${taskId}`, {
+      method: "PATCH",
+      body: JSON.stringify(updateData),
+    });
+
+    displaySuccessMessage("Task updated successfully!");
+
+    // Hide modal
+    const modal = document.getElementById("editTaskModal");
+    const bootstrapModal = bootstrap.Modal.getInstance(modal);
+    bootstrapModal.hide();
+
+    // Reset file state
+    selectedFiles = [];
+    editExistingAttachments = [];
+
+    // Reload tasks and refresh display
+    await loadAllTasks();
+    if (currentSelectedLabel) {
+      filterTasksByLabel(currentSelectedLabel);
+    }
+  } catch (error) {
+    console.error("Failed to update task:", error);
+    displayErrorMessage("Failed to update task. Please try again.");
+  }
 }
 
 // --- Toggle Archive Task ---
@@ -1391,6 +1744,26 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     });
   }
+
+  // Set up form submission for new edit form
+  const editTaskForm = document.getElementById("editTaskForm");
+  if (editTaskForm) {
+    editTaskForm.addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const modal = document.getElementById("editTaskModal");
+      const taskId = modal.dataset.taskId;
+
+      if (!taskId) {
+        displayErrorMessage("Task ID not found");
+        return;
+      }
+
+      await handleEditTaskSubmission(taskId);
+    });
+  }
+
+  // Setup tag functionality
+  setupTagFunctionality();
 
   setupLogoutHandler();
 

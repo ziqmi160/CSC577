@@ -7,6 +7,8 @@ const API_BASE_URL = "http://localhost:5000";
 let allTasks = []; // Store all tasks fetched from backend
 let currentPriorityFilter = "all"; // Track current priority filter
 let currentSearchQuery = null; // Track current search query for semantic search
+let selectedFiles = []; // Store selected files for upload
+let editExistingAttachments = []; // Store existing attachments when editing
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
 
 // --- Authentication Functions ---
@@ -75,6 +77,9 @@ async function fetchAllTasks() {
 
     // Store all tasks globally for filtering
     allTasks = tasks || [];
+
+    // Update existing tags dropdown whenever tasks are loaded
+    populateExistingTagsDropdown();
 
     // Reset search state when fetching all tasks
     currentSearchQuery = null;
@@ -323,6 +328,9 @@ async function editTask(taskId) {
 
     // Populate the edit form with task data
     populateEditForm(task);
+    
+    // Populate existing tags dropdown
+    populateExistingTagsDropdown();
 
     // Store task ID for form submission
     window.currentEditTaskId = taskId;
@@ -332,6 +340,11 @@ async function editTask(taskId) {
       document.getElementById("editTaskModal")
     );
     editModal.show();
+    
+    // Trigger a custom event to signal that the edit form is opened
+    document.dispatchEvent(new CustomEvent("edit-task-opened", {
+      detail: { taskId: taskId }
+    }));
   } catch (error) {
     console.error("Failed to open edit form:", error);
     displayErrorMessage("Failed to open edit form");
@@ -582,6 +595,10 @@ function setupModalActionButtons(taskId) {
 
 // Populate edit form with task data
 function populateEditForm(task) {
+  // Reset file state
+  selectedFiles = [];
+  editExistingAttachments = task.attachment && Array.isArray(task.attachment) ? [...task.attachment] : [];
+
   // Set form fields
   document.getElementById("editTaskTitle").value = task.title || "";
   document.getElementById("editTaskDescription").value = task.description || "";
@@ -597,15 +614,222 @@ function populateEditForm(task) {
     document.getElementById("editTaskDueDate").value = "";
   }
 
-  // Set tags (convert array to comma-separated string)
+  // Set tags container
   if (task.label && Array.isArray(task.label)) {
-    document.getElementById("editTaskTags").value = task.label.join(", ");
-  } else {
-    document.getElementById("editTaskTags").value = "";
+    // Clear existing tags
+    const editTagContainer = document.getElementById("editTagContainer");
+    if (editTagContainer) {
+      editTagContainer.innerHTML = "";
+      
+      // Add each tag as a badge
+      task.label.forEach(tag => {
+        addTagToContainer(tag, editTagContainer, "edit");
+      });
+    }
+    
+    // Clear the input field
+    const editTagInput = document.getElementById("editTagInput");
+    if (editTagInput) {
+      editTagInput.value = "";
+    }
   }
 
-  // Clear file input
-  document.getElementById("editTaskAttachment").value = "";
+  // Clear file input and render attachments
+  const editTaskAttachment = document.getElementById("editTaskAttachment");
+  if (editTaskAttachment) {
+    editTaskAttachment.value = "";
+  }
+  
+  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
+  if (editAttachmentContainer) {
+    renderAttachmentList(editAttachmentContainer, selectedFiles, editExistingAttachments);
+  }
+}
+
+// Helper function to add tag to container
+function addTagToContainer(tagText, container, prefix = "") {
+  if (!tagText || !container) return;
+  
+  const tagBadge = document.createElement("span");
+  tagBadge.className = "badge bg-secondary me-1 mb-1";
+  tagBadge.innerHTML = `${tagText} <i class="bi bi-x" style="cursor: pointer;"></i>`;
+  
+  // Add click handler to remove tag
+  const removeIcon = tagBadge.querySelector("i");
+  if (removeIcon) {
+    removeIcon.addEventListener("click", function() {
+      container.removeChild(tagBadge);
+    });
+  }
+  
+  container.appendChild(tagBadge);
+}
+
+// Format file size in KB, MB, etc.
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' bytes';
+  else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+  else return (bytes / 1073741824).toFixed(1) + ' GB';
+}
+
+// Upload files to server
+async function uploadFiles(files) {
+  if (!files || !files.length) return [];
+
+  try {
+    console.log("Starting file upload for", files.length, "files");
+    const formData = new FormData();
+    
+    // Add each file to the form data
+    for (let i = 0; i < files.length; i++) {
+      formData.append("files", files[i]);
+      console.log("Added file to FormData:", files[i].name, files[i].size);
+    }
+
+    const token = localStorage.getItem("token");
+    console.log("Token available:", !!token);
+
+    // Send the upload request
+    const uploadResponse = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("Upload response status:", uploadResponse.status);
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("Upload error response:", errorText);
+      throw new Error(
+        `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
+      );
+    }
+
+    const data = await uploadResponse.json();
+    console.log("Upload success, files:", data.files);
+    return data.files; // Array of URLs
+  } catch (error) {
+    console.error("File upload error:", error);
+    displayErrorMessage(`Failed to upload files: ${error.message}`);
+    throw error;
+  }
+}
+
+// Setup file attachment handlers
+function setupFileAttachmentHandlers() {
+  const editTaskAttachment = document.getElementById("editTaskAttachment");
+  const editAttachmentContainer = document.getElementById("editAttachmentContainer");
+  
+  if (editTaskAttachment && editAttachmentContainer) {
+    // Listen for file selection changes
+    editTaskAttachment.addEventListener("change", function() {
+      selectedFiles = Array.from(this.files);
+      renderAttachmentList(editAttachmentContainer, selectedFiles, editExistingAttachments);
+    });
+  }
+}
+
+// Render attachment list with delete functionality (matching dashboard.js)
+// Render attachment list
+function renderAttachmentList(container, newFiles = [], existingAttachments = []) {
+  if (!container) return;
+  
+  container.innerHTML = "";
+
+  // Show existing attachments (when editing)
+  existingAttachments.forEach((url, idx) => {
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi bi-file-earmark me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = url.split("/").pop();
+
+    const viewableExtensions = [
+      "pdf", "txt", "html", "htm", "css", "js", "json", "xml", "csv", "md",
+      "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico",
+      "mp3", "wav", "ogg", "mp4", "webm", "py", "java", "cpp", "c", "php", "rb", "go", "rs", "swift", "kt", "yaml", "yml", "toml", "ini", "conf", "log", "woff", "woff2", "ttf", "eot"
+    ];
+    const canView = viewableExtensions.includes(url.split(".").pop()?.toLowerCase());
+
+    const actionDiv = document.createElement("div");
+    actionDiv.className = "d-flex gap-1";
+
+    if (canView) {
+      const viewBtn = document.createElement("button");
+      viewBtn.type = "button";
+      viewBtn.className = "btn btn-sm btn-outline-primary";
+      viewBtn.innerHTML = '<i class="bi bi-eye"></i>';
+      viewBtn.onclick = () => previewFile(`${API_BASE_URL}${url}`, url.split("/").pop());
+      actionDiv.appendChild(viewBtn);
+    }
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = () => {
+      editExistingAttachments.splice(idx, 1);
+      renderAttachmentList(container, selectedFiles, editExistingAttachments);
+    };
+    actionDiv.appendChild(deleteBtn);
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(actionDiv);
+    container.appendChild(div);
+  });
+
+  // Show new files
+  newFiles.forEach((file, idx) => {
+    const div = document.createElement("div");
+    div.className = "attachment-item mb-2 p-2 border rounded";
+    div.style.backgroundColor = "var(--background-color)";
+
+    const fileIcon = document.createElement("i");
+    fileIcon.className = `bi bi-file-earmark me-2`;
+    fileIcon.style.color = "var(--text-color)";
+
+    const fileNameSpan = document.createElement("span");
+    fileNameSpan.className = "attachment-filename";
+    fileNameSpan.textContent = file.name;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "btn btn-sm btn-outline-danger";
+    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+    deleteBtn.onclick = () => {
+      selectedFiles.splice(idx, 1);
+      renderAttachmentList(container, selectedFiles, editExistingAttachments);
+    };
+
+    div.appendChild(fileIcon);
+    div.appendChild(fileNameSpan);
+    div.appendChild(deleteBtn);
+    container.appendChild(div);
+  });
+}
+
+// Preview file function
+function previewFile(url, fileName) {
+  const fileExt = fileName.split('.').pop()?.toLowerCase();
+  
+  if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(fileExt)) {
+    showImagePreview(url, fileName);
+  } else if (["mp3", "wav", "ogg", "mp4", "webm"].includes(fileExt)) {
+    showMediaPreview(url, fileName, fileExt);
+  } else {
+    showDocumentPreview(url, fileName);
+  }
 }
 
 // Handle edit task form submission
@@ -625,55 +849,43 @@ async function handleEditTaskSubmission(taskId) {
       return;
     }
 
-    // Process tags
-    const tagsString = document.getElementById("editTaskTags").value.trim();
-    if (tagsString) {
-      taskData.label = tagsString
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag);
+    // Process tags from tag container
+    const editTagContainer = document.getElementById("editTagContainer");
+    if (editTagContainer) {
+      const tagElements = editTagContainer.querySelectorAll(".badge");
+      taskData.label = Array.from(tagElements).map(badge => {
+        // Extract text content without the "×" icon
+        const text = badge.textContent || "";
+        return text.replace("×", "").trim();
+      }).filter(tag => tag);
     } else {
       taskData.label = [];
     }
 
-    // Check if there are new files to upload
-    const fileInput = document.getElementById("editTaskAttachment");
-    const hasNewFiles = fileInput.files && fileInput.files.length > 0;
-
-    if (hasNewFiles) {
-      // If there are new files, use FormData for multipart upload
-      const formData = new FormData();
-      formData.append("taskData", JSON.stringify(taskData));
-
-      // Add files
-      for (let i = 0; i < fileInput.files.length; i++) {
-        formData.append("files", fileInput.files[i]);
+    // Handle file uploads if needed
+    let uploadedUrls = [];
+    if (selectedFiles && selectedFiles.length > 0) {
+      try {
+        // Upload files first and get the URLs
+        uploadedUrls = await uploadFiles(selectedFiles);
+      } catch (error) {
+        console.error("File upload failed:", error);
+        displayErrorMessage(`File upload failed: ${error.message}`);
+        return; // Don't proceed if upload fails
       }
+    }
+    
+    // Combine existing attachments with newly uploaded ones
+    taskData.attachment = [
+      ...editExistingAttachments,
+      ...uploadedUrls
+    ];
 
-      // Update task with files
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ message: "Unknown error" }));
-        throw new Error(
-          errorData.message || `Update failed: ${response.statusText}`
-        );
-      }
-    } else {
-      // No new files, use JSON update
+    // Update the task
       await apiFetch(`/tasks/${taskId}`, {
         method: "PATCH",
         body: JSON.stringify(taskData),
       });
-    }
 
     displaySuccessMessage("Task updated successfully!");
 
@@ -682,6 +894,10 @@ async function handleEditTaskSubmission(taskId) {
       document.getElementById("editTaskModal")
     );
     editModal.hide();
+
+    // Reset attachment state
+    selectedFiles = [];
+    editExistingAttachments = [];
 
     // Refresh the tasks to reflect the changes
     await fetchAllTasks();
@@ -1061,13 +1277,11 @@ function setupLogoutHandler() {
 
 // Setup edit task form submission
 function setupEditTaskFormSubmission() {
-  // Get the Update Task button from the edit modal
-  const updateButton = document.querySelector(
-    "#editTaskModal .btn-primary-accent"
-  );
+  // Get the edit task form
+  const editTaskForm = document.getElementById("editTaskForm");
 
-  if (updateButton) {
-    updateButton.addEventListener("click", function (e) {
+  if (editTaskForm) {
+    editTaskForm.addEventListener("submit", function (e) {
       e.preventDefault();
 
       // Check if we have a task ID stored
@@ -1158,6 +1372,9 @@ function initPriorityPage() {
 
   // Setup edit task form submission
   setupEditTaskFormSubmission();
+  
+  // Setup tag functionality for edit form
+  setupTagFunctionality();
 
   // Set initial filter to "all" and make sure the button is active
   const allButton = document.querySelector('[data-priority="all"]');
@@ -1167,6 +1384,106 @@ function initPriorityPage() {
 
   // Fetch and display all tasks from the backend
   fetchAllTasks();
+}
+
+// Setup tag functionality for edit form
+function setupTagFunctionality() {
+  // Add tag button click handler for edit form
+  const editAddTagBtn = document.getElementById("editAddTagBtn");
+  const editTagInput = document.getElementById("editTagInput");
+  const editTagContainer = document.getElementById("editTagContainer");
+  const editExistingTagsDropdown = document.getElementById("editExistingTagsDropdown");
+
+  if (editAddTagBtn && editTagInput && editTagContainer) {
+    editAddTagBtn.addEventListener("click", function() {
+      addTagFromInput(editTagInput, editTagContainer);
+    });
+
+    // Add tag on Enter key
+    editTagInput.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addTagFromInput(editTagInput, editTagContainer);
+      }
+    });
+  }
+
+  // Add tag from existing tags dropdown
+  if (editExistingTagsDropdown && editTagContainer) {
+    editExistingTagsDropdown.addEventListener("change", function() {
+      const selectedTag = this.value;
+      if (selectedTag) {
+        addTagToContainer(selectedTag, editTagContainer, "edit");
+        this.value = ""; // Reset dropdown
+      }
+    });
+  }
+
+  // Setup file attachment handlers
+  setupFileAttachmentHandlers();
+
+  // Populate existing tags dropdown
+  populateExistingTagsDropdown();
+}
+
+// Populate existing tags dropdown from all tasks
+function populateExistingTagsDropdown() {
+  console.log("Populating existing tags dropdown");
+  const existingTagsDropdown = document.getElementById("editExistingTagsDropdown");
+  if (!existingTagsDropdown) {
+    console.error("Existing tags dropdown element not found");
+    return;
+  }
+  
+  // Reset dropdown
+  existingTagsDropdown.innerHTML = '<option value="">Select existing tag</option>';
+  
+  // Collect all unique tags from tasks
+  const allTags = new Set();
+  
+  if (!allTasks || !Array.isArray(allTasks)) {
+    console.error("allTasks is not properly initialized:", allTasks);
+    return;
+  }
+  
+  console.log(`Processing ${allTasks.length} tasks for tags`);
+  
+  allTasks.forEach(task => {
+    if (task.label && Array.isArray(task.label)) {
+      task.label.forEach(tag => {
+        if (tag && tag.trim()) {
+          allTags.add(tag.trim());
+        }
+      });
+    }
+  });
+  
+  console.log(`Found ${allTags.size} unique tags:`, Array.from(allTags));
+  
+  // Add options for each unique tag
+  Array.from(allTags).sort().forEach(tag => {
+    const option = document.createElement("option");
+    option.value = tag;
+    option.textContent = tag;
+    existingTagsDropdown.appendChild(option);
+  });
+  
+  console.log("Finished populating tags dropdown");
+}
+
+// Helper function to add tag from input
+function addTagFromInput(input, container) {
+  if (!input || !container) return;
+  
+  const tagText = input.value.trim();
+  if (tagText) {
+    // Split by comma and add each tag
+    const tags = tagText.split(",").map(tag => tag.trim()).filter(tag => tag);
+    tags.forEach(tag => {
+      addTagToContainer(tag, container);
+    });
+    input.value = "";
+  }
 }
 
 // --- Initialize when DOM is loaded ---

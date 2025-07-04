@@ -867,12 +867,139 @@
             >
               Close
             </button>
+            <button type="button" class="btn btn-primary" id="editTaskBtn">
+              <i class="bi bi-pencil me-1"></i> Edit
+            </button>
             <button type="button" class="btn btn-success" id="restoreTaskBtn">
               <i class="bi bi-arrow-counterclockwise me-1"></i> Restore
             </button>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Edit Task Modal (new structure, matches dashboard.html) -->
+    <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTaskModalLabel">Edit Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editTaskForm">
+                        <div class="mb-3">
+                            <label for="editTaskTitle" class="form-label">Task Title *</label>
+                            <input type="text" class="form-control" id="editTaskTitle" name="title" placeholder="e.g., Finish report by Friday" required maxlength="100">
+                            <div class="form-text">
+                                <small class="text-muted">Maximum 100 characters</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskDescription" class="form-label">Description <small class="text-muted">(Optional)</small></label>
+                            <textarea class="form-control" id="editTaskDescription" name="description" rows="3" placeholder="Detailed description of the task..." maxlength="500"></textarea>
+                            <div class="form-text">
+                                <small class="text-muted">Maximum 500 characters</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editTaskDueDate" class="form-label">Due Date *</label>
+                                    <input type="date" class="form-control" id="editTaskDueDate" name="dueDate" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="editTaskPriority" class="form-label">Priority</label>
+                                    <select class="form-select" id="editTaskPriority" name="priority">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskTags" class="form-label">
+                                Tags
+                                <small class="text-muted ms-2">(Optional)</small>
+                            </label>
+                            <div class="d-flex mb-2">
+                                <input type="text" id="editTagInput" class="form-control inputcss" placeholder="Add tags (comma separated)..." />
+                                <button type="button" id="editAddTagBtn" class="btn btn-outline-primary ms-2">Add Tag</button>
+                            </div>
+                            <select id="editExistingTagsDropdown" class="form-select mb-2">
+                                <option value="">Select existing tag</option>
+                            </select>
+                            <div id="editTagContainer" class="mt-2"></div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editTaskAttachment" class="form-label">
+                                Attachments
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="openFileViewingModal(event)" title="File viewing guide">
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <label for="editTaskAttachment" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                </label>
+                                <input type="file" class="form-control" id="editTaskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
+                            </div>
+                            <div id="editAttachmentContainer" class="mt-2"></div>
+                            <small class="text-muted">You can select multiple files. Supported formats: All file types.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" form="editTaskForm" class="btn btn-primary-accent"><i class="bi bi-check-circle me-2"></i>Update Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Viewing Help Modal -->
+    <div class="modal fade stacked-modal" id="fileViewingHelpModal" tabindex="-1" aria-labelledby="fileViewingHelpModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileViewingHelpModalLabel">
+                        <i class="bi bi-question-circle me-2"></i>File Viewing Guide
+                    </h5>
+                    <button type="button" class="btn-close" onclick="closeFileViewingModal()" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="bi bi-check-circle me-1"></i>Viewable Files</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>📄 Documents:</strong> PDF, TXT, HTML, CSS, JS, JSON, XML, CSV, MD</li>
+                                <li><strong>🖼️ Images:</strong> JPG, PNG, GIF, SVG, WebP, BMP, ICO</li>
+                                <li><strong>🎵 Audio:</strong> MP3, WAV, OGG</li>
+                                <li><strong>🎬 Video:</strong> MP4, WebM, OGG</li>
+                                <li><strong>💻 Code:</strong> Python, Java, C++, PHP, Ruby, Go, Rust, Swift, Kotlin</li>
+                                <li><strong>📊 Data:</strong> YAML, TOML, INI, CONF, LOG</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-danger"><i class="bi bi-x-circle me-1"></i>Non-Viewable Files</h6>
+                            <p>Other file types will be available for download only:</p>
+                            <ul class="list-unstyled">
+                                <li><strong>📦 Archives:</strong> ZIP, RAR, TAR, 7Z</li>
+                                <li><strong>📊 Office:</strong> DOC, DOCX, XLS, XLSX, PPT, PPTX</li>
+                                <li><strong>🖥️ Executables:</strong> EXE, APP, DLL, etc.</li>
+                                <li><strong>🗄️ Large Files:</strong> Files over 10MB may not preview</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeFileViewingModal()">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS CDN (bundle includes Popper.js) -->
@@ -1079,5 +1206,21 @@
 
     <!-- Archived Tasks JavaScript -->
     <script src="archived.js"></script>
+    <script>
+      // Function to open file viewing help modal
+      function openFileViewingModal(event) {
+        event.preventDefault();
+        const fileViewingModal = new bootstrap.Modal(document.getElementById('fileViewingHelpModal'));
+        fileViewingModal.show();
+      }
+
+      // Function to close file viewing help modal
+      function closeFileViewingModal() {
+        const fileViewingModal = bootstrap.Modal.getInstance(document.getElementById('fileViewingHelpModal'));
+        if (fileViewingModal) {
+          fileViewingModal.hide();
+        }
+      }
+    </script>
   </body>
 </html>
