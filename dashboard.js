@@ -444,7 +444,12 @@ function handleEditTask(card) {
 
     if (titleInput) titleInput.value = taskTitle;
     if (descriptionInput) descriptionInput.value = taskDescription;
-    if (dueDateInput) dueDateInput.value = taskDueDate;
+    if (dueDateInput) {
+      dueDateInput.value = taskDueDate;
+      // Set minimum date to today for edit form as well
+      const today = new Date().toISOString().split("T")[0];
+      dueDateInput.setAttribute("min", today);
+    }
     if (prioritySelect) prioritySelect.value = taskPriority;
     if (tagsInput) tagsInput.value = tags.join(", ");
 
@@ -869,6 +874,13 @@ function setupTaskForm() {
   const form = addTaskModal.querySelector("form");
   if (!form) return;
 
+  // Set minimum date to today for the due date input
+  const dueDateInput = form.querySelector("#taskDueDate");
+  if (dueDateInput) {
+    const today = new Date().toISOString().split("T")[0];
+    dueDateInput.setAttribute("min", today);
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -889,6 +901,13 @@ function setupTaskForm() {
     }
     if (!taskData.dueDate) {
       displayErrorMessage("Due date is required!");
+      return;
+    }
+
+    // Validate due date is not in the past
+    const currentDate = new Date().toISOString().split("T")[0];
+    if (new Date(taskData.dueDate) < new Date(currentDate)) {
+      displayErrorMessage("Due date cannot be in the past!");
       return;
     }
 
@@ -1268,36 +1287,36 @@ function setupLogoutHandler() {
     // Look for logout buttons or links with multiple selectors
     const logoutElements = document.querySelectorAll('a[href="#"] .bi-box-arrow-right, .dropdown-item:has(.bi-box-arrow-right), a:has(.bi-box-arrow-right)');
     console.log("Found logout elements:", logoutElements.length);
-    
-    logoutElements.forEach((element) => {
+
+  logoutElements.forEach((element) => {
       console.log("Adding click listener to:", element);
-      element.addEventListener("click", (e) => {
+    element.addEventListener("click", (e) => {
         console.log("Logout element clicked!");
-        e.preventDefault();
+      e.preventDefault();
         e.stopPropagation();
+      if (confirm("Are you sure you want to logout?")) {
+        handleLogout();
+      }
+    });
+  });
+
+  // Also handle if logout is in a parent element
+  document.addEventListener("click", (e) => {
+    if (
+      e.target.closest(".bi-box-arrow-right") ||
+      e.target.textContent.toLowerCase().includes("logout")
+    ) {
+      const parentLink = e.target.closest("a");
+      if (parentLink && parentLink.href.includes("#")) {
+          console.log("Logout link clicked via delegation!");
+        e.preventDefault();
+          e.stopPropagation();
         if (confirm("Are you sure you want to logout?")) {
           handleLogout();
         }
-      });
-    });
-    
-    // Also handle if logout is in a parent element
-    document.addEventListener("click", (e) => {
-      if (
-        e.target.closest(".bi-box-arrow-right") ||
-        e.target.textContent.toLowerCase().includes("logout")
-      ) {
-        const parentLink = e.target.closest("a");
-        if (parentLink && parentLink.href.includes("#")) {
-          console.log("Logout link clicked via delegation!");
-          e.preventDefault();
-          e.stopPropagation();
-          if (confirm("Are you sure you want to logout?")) {
-            handleLogout();
-          }
-        }
       }
-    });
+    }
+  });
   }, 200);
 }
 
