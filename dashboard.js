@@ -8,6 +8,8 @@ let editItem = null;
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
 let allTasks = []; // Store all tasks for filtering
 let currentSearchQuery = null; // Track current search query
+let selectedFiles = []; // Store selected files for upload in add/edit modal
+let editExistingAttachments = []; // Store existing attachments when editing a task
 
 // --- Authentication Functions ---
 function checkAuth() {
@@ -104,6 +106,7 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
 
     // Update UI state
     updateTaskCounter(tasks ? tasks.length : 0);
+    populateExistingTagsDropdown(); // Re-populate tags when tasks load
   } catch (error) {
     console.error("Failed to load tasks:", error);
     // Don't show error message here as apiFetch already handles it
@@ -283,6 +286,45 @@ function createTaskCard(task) {
 
 // --- Task Action Functions (aligned with priority.js) ---
 
+// Populate Edit Form - Re-added
+function populateEditForm(task) {
+  const addTaskModal = document.getElementById("addTaskModal");
+  if (!addTaskModal) return;
+
+  // Set modal title and submit button text for editing
+  const modalTitle = addTaskModal.querySelector(".modal-title");
+  if (modalTitle) modalTitle.textContent = "Edit Task";
+  const submitBtn = addTaskModal.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Update Task';
+  }
+
+  // Populate form fields
+  const titleInput = addTaskModal.querySelector('input[name="title"]');
+  const descriptionInput = addTaskModal.querySelector('textarea[name="description"]');
+  const dueDateInput = addTaskModal.querySelector('input[name="dueDate"]');
+  const prioritySelect = addTaskModal.querySelector('select[name="priority"]');
+  const tagsInput = addTaskModal.querySelector('input[name="tags"]');
+
+  if (titleInput) titleInput.value = task.title || "";
+  if (descriptionInput) descriptionInput.value = task.description || "";
+  if (dueDateInput) {
+    // Format date to YYYY-MM-DD for input type="date"
+    dueDateInput.value = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "";
+  }
+  if (prioritySelect) prioritySelect.value = task.priority || "Low";
+  if (tagsInput) tagsInput.value = (task.label || []).join(", ");
+
+  // Handle attachments for editing
+  editExistingAttachments = task.attachment || [];
+  setAttachmentDisplay(editExistingAttachments, "attachmentContainer");
+  selectedFiles = []; // Clear new selected files when editing an existing task
+
+  // Store task ID for form submission
+  window.currentEditTaskId = task._id;
+}
+
+
 // Edit task function - show edit modal instead of redirecting
 async function editTask(taskId) {
   if (actionInProgress.has(taskId)) return;
@@ -298,15 +340,12 @@ async function editTask(taskId) {
     // Populate the edit form with task data
     populateEditForm(task);
     
-    // Populate existing tags dropdown
+    // Populate existing tags dropdown (ensuring it's up-to-date)
     populateExistingTagsDropdown();
-
-    // Store task ID for form submission
-    window.currentEditTaskId = taskId;
 
     // Show the edit modal
     const editModal = new bootstrap.Modal(
-      document.getElementById("editTaskModal")
+      document.getElementById("addTaskModal") // Use addTaskModal for editing
     );
     editModal.show();
     
@@ -545,7 +584,7 @@ function setupModalActionButtons(taskId) {
     editTaskBtn.onclick = function () {
       const taskDetailsModal = bootstrap.Modal.getInstance(document.getElementById("taskDetailsModal"));
       if (taskDetailsModal) taskDetailsModal.hide();
-      setTimeout(() => editTask(taskId), 500);
+      setTimeout(() => editTask(taskId), 500); // Small delay to allow previous modal to hide
     };
   }
 
@@ -558,123 +597,15 @@ function setupModalActionButtons(taskId) {
       if (taskDetailsModal) taskDetailsModal.hide();
     };
   }
-}
 
-// --- Handle Task Actions (simplified for new card structure) ---
-// This function will primarily handle delete clicks and potentially checkbox clicks if they are not directly handled by createTaskCard
-function handleTaskActions(e) {
-  // Handle Delete button click
-  if (e.target.classList.contains("delete") || e.target.closest(".delete")) {
-    e.preventDefault();
-    e.stopPropagation();
-    const card = e.target.closest(".task-card");
-    const taskId = card.dataset.taskId;
-
-    if (!taskId) {
-      displayErrorMessage("Error: Task ID not found for deletion.");
-      return;
-    }
-
-    if (confirm("Are you sure you want to delete this task?")) {
-      deleteTask(taskId); // Call the unified deleteTask function
-    }
-    return;
-  }
-
-  // Handle Mark as Complete checkbox click (if still needed, as archiveTask handles it)
-  if (e.target.classList.contains("task-completed-checkbox")) {
-    e.preventDefault();
-    e.stopPropagation();
-    const card = e.target.closest(".task-card");
-    const taskId = card.dataset.taskId;
-    const isCompleted = e.target.checked;
-
-    if (!taskId) {
-      displayErrorMessage("Error: Task ID not found for status update.");
-      e.target.checked = !isCompleted;
-      return;
-    }
-
-    if (actionInProgress.has(taskId)) {
-      e.target.checked = !isCompleted;
-      return;
-    }
-
-    archiveTask(taskId); // Call the unified archiveTask function
-    return;
-  }
-}
-
-// --- Handle Edit Task ---
-function handleEditTask(card) {
-  // Show add task modal for editing
-  const addTaskModal = document.getElementById("addTaskModal");
-  if (addTaskModal) {
-    // Populate form with task data
-    const taskTitle = card.dataset.title;
-    const taskDescription = card.dataset.description;
-    const taskDueDate = card.dataset.dueDate;
-    const taskPriority = card.dataset.priority;
-    const tags = card.dataset.tags
-      ? card.dataset.tags.split(",").filter((tag) => tag.trim())
-      : [];
-    const attachments = card.dataset.attachment
-      ? card.dataset.attachment.split(",").filter((att) => att.trim())
-      : [];
-
-    // Find form elements and populate them
-    const titleInput = document.querySelector(
-      '#addTaskModal input[name="title"]'
-    );
-    const descriptionInput = document.querySelector(
-      '#addTaskModal textarea[name="description"]'
-    );
-    const dueDateInput = document.querySelector(
-      '#addTaskModal input[name="dueDate"]'
-    );
-    const prioritySelect = document.querySelector(
-      '#addTaskModal select[name="priority"]'
-    );
-    const tagsInput = document.querySelector(
-      '#addTaskModal input[name="tags"]'
-    );
-
-    if (titleInput) titleInput.value = taskTitle;
-    if (descriptionInput) descriptionInput.value = taskDescription;
-    if (dueDateInput) dueDateInput.value = taskDueDate;
-    if (prioritySelect) prioritySelect.value = taskPriority;
-    if (tagsInput) tagsInput.value = tags.join(", ");
-
-    // Handle attachments
-    if (attachments.length > 0) {
-      setAttachmentDisplay(attachments, "attachmentContainer");
-    } else {
-      resetAttachments();
-    }
-
-    // Store the card reference for later use
-    editItem = card;
-
-    // Show modal
-    const modal = new bootstrap.Modal(addTaskModal);
-    modal.show();
-
-    // Update modal title
-    const modalTitle = addTaskModal.querySelector(".modal-title");
-    if (modalTitle) modalTitle.textContent = "Edit Task";
-
-    // Update submit button text
-    const submitBtn = addTaskModal.querySelector('button[type="submit"]');
-    if (submitBtn) {
-      submitBtn.innerHTML =
-        '<i class="bi bi-check-circle me-2"></i>Update Task';
-    }
-
-    // Set tags
-    setTags(tags);
-
-    // Populate existing tags dropdown
-    populateExistingTagsDropdown();
+  // Delete button
+  const deleteTaskBtn = document.getElementById("deleteTaskDetailsBtn"); // Assuming an ID for delete button in details modal
+  if (deleteTaskBtn) {
+    deleteTaskBtn.onclick = function () {
+      deleteTask(taskId);
+      const taskDetailsModal = bootstrap.Modal.getInstance(document.getElementById("taskDetailsModal"));
+      if (taskDetailsModal) taskDetailsModal.hide();
+    };
   }
 }
 
@@ -767,7 +698,7 @@ async function performTaskSearch( query, useSemantic = true, useContains = false
   } catch (error) {
     console.error("Search failed:", error);
     displayErrorMessage("Search failed. Please try again.");
-    // Fall back to regular search
+    // Fall back to regular search (if API search fails for some reason)
     filterTasksBySearch(query);
   }
 }
@@ -873,7 +804,7 @@ function setupSearchFunctionality() {
   }
   // Set up event listeners for search checkboxes
   const semanticCheckbox = document.getElementById("semanticSearchCheckbox");
-  const containsCheckbox = document.getElementById("containsCheckbox");
+  const containsCheckbox = document.getElementById("containsSearchCheckbox");
   if (semanticCheckbox) {
     semanticCheckbox.addEventListener("change", function () {
       if (currentSearchQuery) {
@@ -929,11 +860,8 @@ function updateTaskCounter(count) {
   }
 }
 
-// Functions related to file attachments and preview (placeholders as they are not fully in dashboard.js but exist in priority.js)
+// Functions related to file attachments and preview
 function showImagePreview(url, fileName) {
-  // Implementation for image preview modal
-  console.log("Showing image preview for:", fileName, url);
-  // You would typically open a Bootstrap modal here and set the image src
   const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
   document.getElementById('previewImage').src = url;
   document.getElementById('imagePreviewModalLabel').textContent = fileName;
@@ -943,16 +871,21 @@ function showImagePreview(url, fileName) {
 }
 
 function showMediaPreview(url, fileName, fileExtension) {
-  // Implementation for media preview modal
-  console.log("Showing media preview for:", fileName, url);
-  // You would typically open a Bootstrap modal here and set the video/audio src
   const modal = new bootstrap.Modal(document.getElementById('mediaPreviewModal'));
-  const mediaSource = document.getElementById('previewMediaSource');
   const previewMedia = document.getElementById('previewMedia');
   
-  if (mediaSource && previewMedia) {
+  if (previewMedia) {
+    // Clear previous sources
+    previewMedia.innerHTML = ''; 
+    const mediaSource = document.createElement('source');
     mediaSource.src = url;
-    mediaSource.type = `audio/${fileExtension}`; // or video/${fileExtension}
+    // Determine type based on extension
+    if (['mp3', 'wav', 'ogg'].includes(fileExtension)) {
+      mediaSource.type = `audio/${fileExtension}`;
+    } else if (['mp4', 'webm'].includes(fileExtension)) {
+      mediaSource.type = `video/${fileExtension}`;
+    }
+    previewMedia.appendChild(mediaSource);
     previewMedia.load(); // Reload media element to pick up new source
   }
   document.getElementById('mediaPreviewModalLabel').textContent = fileName;
@@ -962,9 +895,6 @@ function showMediaPreview(url, fileName, fileExtension) {
 }
 
 function showDocumentPreview(url, fileName) {
-  // Implementation for document preview modal
-  console.log("Showing document preview for:", fileName, url);
-  // You would typically open a Bootstrap modal here and set the iframe src
   const modal = new bootstrap.Modal(document.getElementById('documentPreviewModal'));
   document.getElementById('previewDocFrame').src = url;
   document.getElementById('documentPreviewModalLabel').textContent = fileName;
@@ -973,17 +903,17 @@ function showDocumentPreview(url, fileName) {
   modal.show();
 }
 
-
-// Placeholder functions for attachment handling in modals, to be consistent with priority.js if those features are used
-let selectedFiles = [];
-let editExistingAttachments = [];
-
 function resetAttachments() {
     selectedFiles = [];
     editExistingAttachments = [];
     const container = document.getElementById("attachmentContainer");
     if (container) {
         container.innerHTML = '<p class="text-muted mb-0">No files selected.</p>';
+    }
+    // Also clear the file input itself
+    const attachmentInput = document.getElementById("attachmentInput");
+    if (attachmentInput) {
+        attachmentInput.value = '';
     }
 }
 
@@ -999,6 +929,7 @@ function setAttachmentDisplay(attachments, containerId) {
     }
 
     attachments.forEach((file) => {
+        // 'file' can be a File object (for new uploads) or a string (for existing attachments)
         const fileName = typeof file === 'string' ? file.split("/").pop() : file.name;
         const div = document.createElement("div");
         div.className = "d-flex align-items-center mb-1";
@@ -1015,10 +946,11 @@ function initDashboard() {
   }
   loadTasksFromAPI();
 
-  // Event listener for global task actions
-  document.getElementById("taskList").addEventListener("click", handleTaskActions);
+  // Event listener for global task actions (if any other actions are not directly on card)
+  // Removed `handleTaskActions` from `taskList` as card events are now direct.
+  // If there are other actions on the dashboard, this listener might be needed elsewhere.
 
-  // Setup Add Task Form Submission
+  // Setup Add/Edit Task Form Submission
   const addTaskForm = document.getElementById("addTaskForm");
   if (addTaskForm) {
     addTaskForm.addEventListener("submit", async function (e) {
@@ -1040,9 +972,9 @@ function initDashboard() {
       };
 
       // Handle file uploads
-      const newFiles = selectedFiles;
-      if (newFiles.length > 0) {
-          const uploadPromises = newFiles.map(file => {
+      let finalAttachments = [...editExistingAttachments]; // Start with existing attachments
+      if (selectedFiles.length > 0) {
+          const uploadPromises = selectedFiles.map(file => {
               const fileFormData = new FormData();
               fileFormData.append('file', file);
               return apiFetch('/upload', {
@@ -1057,21 +989,19 @@ function initDashboard() {
           try {
               const uploadResults = await Promise.all(uploadPromises);
               const uploadedFilePaths = uploadResults.map(res => res.filePath);
-              taskData.attachment = [...editExistingAttachments, ...uploadedFilePaths];
+              finalAttachments = [...finalAttachments, ...uploadedFilePaths];
           } catch (uploadError) {
               console.error("File upload failed:", uploadError);
               displayErrorMessage("Failed to upload files. Task not saved.");
               return;
           }
-      } else {
-          taskData.attachment = editExistingAttachments;
       }
+      taskData.attachment = finalAttachments;
 
       try {
         if (taskId) {
           // Update existing task
           await updateTask(taskId, taskData);
-          window.currentEditTaskId = null; // Clear edit state
         } else {
           // Add new task
           await addTask(taskData);
@@ -1080,7 +1010,7 @@ function initDashboard() {
         if (modal) modal.hide();
         addTaskForm.reset();
         resetAttachments(); // Clear attachments after submission
-        displaySuccessMessage("Task saved successfully!");
+        // Success message already displayed by addTask/updateTask
       } catch (error) {
         console.error("Error saving task:", error);
         // Error message already handled by apiFetch or specific addTask/updateTask
@@ -1093,7 +1023,9 @@ function initDashboard() {
   if (attachmentInput) {
       attachmentInput.addEventListener("change", (event) => {
           selectedFiles = Array.from(event.target.files);
-          setAttachmentDisplay(selectedFiles, "attachmentContainer");
+          // Combine existing attachments with new selections for display only
+          const combinedAttachmentsForDisplay = [...editExistingAttachments.map(url => url.split('/').pop()), ...selectedFiles];
+          setAttachmentDisplay(combinedAttachmentsForDisplay, "attachmentContainer");
       });
   }
 
@@ -1119,14 +1051,15 @@ function initDashboard() {
 
   setupSearchFunctionality();
 
-  // Populate existing tags dropdown on dashboard load
-  populateExistingTagsDropdown();
+  // Populate existing tags dropdown on dashboard load (done in loadTasksFromAPI now)
+  // populateExistingTagsDropdown();
 
   // Event listener for filtering by tags from the dropdown
   const filterDropdownMenu = document.getElementById("filterDropdownMenu");
   if (filterDropdownMenu) {
     filterDropdownMenu.addEventListener("click", function (e) {
       if (e.target.classList.contains("dropdown-item")) {
+        e.preventDefault(); // Prevent default link behavior
         const tag = e.target.dataset.tag;
         if (tag === "all") {
           clearAllFilters();
@@ -1177,17 +1110,8 @@ function populateExistingTagsDropdown() {
   }
 }
 
-function setTags(tagsArray) {
-    const tagsInput = document.getElementById("addTaskForm")?.querySelector('input[name="tags"]');
-    if (tagsInput) {
-        tagsInput.value = tagsArray.join(", ");
-    }
-}
-
 // --- Filter tasks by tag ---
 function filterTasksByTag(tag) {
-  const taskContainer = document.getElementById("taskList");
-  let anyVisible = false;
   // Use allTasks for filtering
   const filteredTasks = allTasks.filter((task) =>
     (task.label || []).map((t) => t.trim()).includes(tag)

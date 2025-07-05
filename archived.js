@@ -1386,7 +1386,12 @@ function openEditTaskModal(taskData) {
 
   if (titleField) titleField.value = taskData.title || "";
   if (descriptionField) descriptionField.value = taskData.description || "";
-  if (dueDateField) dueDateField.value = taskData.dueDate || "";
+  if (dueDateField) {
+    dueDateField.value = taskData.dueDate || "";
+    // Set minimum date to today for edit form
+    const today = new Date().toISOString().split("T")[0];
+    dueDateField.setAttribute("min", today);
+  }
   if (priorityField) priorityField.value = taskData.priority || "Medium";
 
   // Handle tags - populate tag container
@@ -1709,6 +1714,23 @@ function setupEditTaskForm() {
         const description = document.getElementById("editTaskDescription").value.trim();
         const dueDate = document.getElementById("editTaskDueDate").value;
         const priority = document.getElementById("editTaskPriority").value;
+        
+        // Validate required fields
+        if (!title) {
+          displayErrorMessage("Task title is required!");
+          return;
+        }
+        if (!dueDate) {
+          displayErrorMessage("Due date is required!");
+          return;
+        }
+        
+        // Validate due date is not in the past
+        const currentDate = new Date().toISOString().split("T")[0];
+        if (new Date(dueDate) < new Date(currentDate)) {
+          displayErrorMessage("Due date cannot be in the past!");
+          return;
+        }
         
         // Get tags from container
         const tagContainer = document.getElementById("editTagContainer");
