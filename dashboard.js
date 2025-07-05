@@ -228,9 +228,13 @@ function createTaskCard(task) {
 
   // Edit icon
   const editIcon = document.createElement("i");
-  editIcon.className = "bi bi-pencil action-icon edit me-2";
+  editIcon.className = "action-icon text-info bi bi-pencil";
   editIcon.title = "Edit Task";
   editIcon.style.cursor = "pointer";
+  editIcon.onclick = (e) => {
+    e.stopPropagation(); // Prevent card click
+    handleEditTask(cardDiv);
+  };
 
   // Archive/Restore icon
   const archiveIcon = document.createElement("i");
