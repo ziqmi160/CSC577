@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Archived Tasks</title>
+  <title>Completed Tasks</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -42,7 +42,7 @@
       border-radius: 10px;
       padding: 15px;
     }
-    #noArchivedMessage {
+    #noCompletedMessage {
       color: #bbb;
       text-align: center;
       margin-top: 30px;
@@ -102,7 +102,7 @@
       ">
       <a href="index3.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Home</a>
       <a href="account.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Account</a>
-      <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Archived</a>
+      <a href="archived.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Completed</a>
       <a href="priority.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Priority</a>
       <a href="scheduled.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Scheduled</a>
       <a href="label.html" style="display: block; padding: 16px; color: #7b34d2; text-decoration: none;">Label</a>
@@ -131,9 +131,9 @@
   </div>
 
   <div class="container-box">
-    <h1>Archived Tasks</h1>
+    <h1>Completed Tasks</h1>
     <div id="archivedTasksContainer"></div>
-    <div id="noArchivedMessage">No archived tasks found.</div>
+    <div id="noCompletedMessage">No archived tasks found.</div>
   </div>
 
 <script>
@@ -144,9 +144,9 @@
 
   const API_BASE_URL = 'http://localhost:5000';
   const archivedTasksContainer = document.getElementById('archivedTasksContainer');
-  const noArchivedMessage = document.getElementById('noArchivedMessage');
+  const noCompletedMessage = document.getElementById('noCompletedMessage');
 
-  async function fetchAndRenderArchived() {
+  async function fetchAndRenderCompleted() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -168,11 +168,11 @@
       archivedTasksContainer.innerHTML = '';
       
       if (completedTasks.length === 0) {
-        noArchivedMessage.style.display = 'block';
+        noCompletedMessage.style.display = 'block';
         return;
       }
       
-      noArchivedMessage.style.display = 'none';
+      noCompletedMessage.style.display = 'none';
       
       completedTasks.forEach(task => {
         const taskElement = document.createElement('div');
@@ -209,7 +209,7 @@
     } catch (err) {
       console.error('Error fetching archived tasks:', err);
       archivedTasksContainer.innerHTML = '<div class="list-group-item">Failed to load archived tasks. Please try again.</div>';
-      noArchivedMessage.style.display = 'none';
+      noCompletedMessage.style.display = 'none';
     }
   }
 
@@ -240,7 +240,7 @@
   // Initialize page
   document.addEventListener('DOMContentLoaded', function() {
     themeSwitcher();
-    fetchAndRenderArchived();
+    fetchAndRenderCompleted();
     
     // Add event listeners
     const modeToggleBtn = document.getElementById("modeToggle");

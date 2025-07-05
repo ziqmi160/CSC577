@@ -42,6 +42,7 @@ A smart task management application with semantic search capabilities and a beau
 ## Setup
 
 1. Start the backend server:
+
    ```bash
    cd task-backend
    npm install
@@ -55,6 +56,7 @@ A smart task management application with semantic search capabilities and a beau
    ```
 
 #### Example environment variables for semantic service:
+
 ```
 MONGO_URI=mongodb://localhost:27017/todo-app-db
 MONGO_DB_NAME=todo-app-db
@@ -65,8 +67,9 @@ PYTHON_SERVICE_PORT=5001
 ---
 
 ## Usage
+
 - Open `index.html` in your browser for the main UI.
-- Use the sidebar to navigate between All Tasks, Priority, Labels, Scheduled, Archived, and Account pages.
+- Use the sidebar to navigate between All Tasks, Priority, Labels, Scheduled, Completed, and Account pages.
 - Add/edit tasks with tags and attachments.
 - Use the search bar for semantic search (natural language queries).
 - View prioritized tasks in `priority.html`.
@@ -74,9 +77,11 @@ PYTHON_SERVICE_PORT=5001
 ---
 
 ## Contributing
+
 Pull requests and issues are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ---
 
 ## License
+
 [MIT](LICENSE)

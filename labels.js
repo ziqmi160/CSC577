@@ -376,20 +376,20 @@ function createTaskCard(task) {
     editTask(task._id);
   };
 
-  // Archive icon
+  // Complete icon
   const archiveIcon = document.createElement("i");
-  const isArchived =
+  const isCompleted =
     task.completed === true ||
     task.completed === "true" ||
     task.completed === 1;
-  archiveIcon.className = isArchived
+  archiveIcon.className = isCompleted
     ? "action-icon text-success bi bi-arrow-counterclockwise"
     : "action-icon text-warning bi bi-archive";
-  archiveIcon.title = isArchived ? "Restore Task" : "Archive Task";
+  archiveIcon.title = isCompleted ? "Restore Task" : "Complete Task";
   archiveIcon.style.cursor = "pointer";
   archiveIcon.onclick = (e) => {
     e.stopPropagation();
-    toggleArchiveTask(task._id, !isArchived);
+    toggleCompleteTask(task._id, !isCompleted);
   };
 
   // Delete icon
@@ -439,7 +439,7 @@ function createTaskCard(task) {
   colDiv.appendChild(cardDiv);
 
   // Apply styling based on task status (matching priority page exactly)
-  if (isArchived) {
+  if (isCompleted) {
     // Apply exact same styling as priority page
     cardDiv.classList.add("bg-light");
     titleH5.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${
@@ -450,7 +450,7 @@ function createTaskCard(task) {
     // Add archived badge to header
     const archivedBadge = document.createElement("span");
     archivedBadge.className = "badge bg-warning ms-2";
-    archivedBadge.textContent = "Archived";
+    archivedBadge.textContent = "Completed";
     cardHeaderDiv.appendChild(archivedBadge);
 
     // Hide edit button
@@ -810,14 +810,14 @@ function clearSelection() {
 function viewTaskDetails(task) {
   console.log("Showing task details modal for:", task.title);
 
-  const isTaskArchived =
+  const isTaskCompleted =
     task.completed === true ||
     task.completed === "true" ||
     task.completed === 1;
 
   // Set task title with archived styling (matching priority page exactly)
   const taskTitle = document.getElementById("taskDetailsTitle");
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     taskTitle.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${task.title}`;
     taskTitle.classList.add("text-muted");
   } else {
@@ -932,10 +932,10 @@ function viewTaskDetails(task) {
   document.getElementById("taskDetailsCreated").textContent = createdDate;
 
   // Set archived status and button (matching priority page exactly)
-  const archivedBadge = document.getElementById("taskDetailsArchived");
+  const archivedBadge = document.getElementById("taskDetailsCompleted");
   const archiveBtn = document.getElementById("archiveTaskBtn");
 
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     archivedBadge.classList.remove("d-none");
     archiveBtn.innerHTML =
       '<i class="bi bi-arrow-counterclockwise me-1"></i> Restore';
@@ -943,7 +943,7 @@ function viewTaskDetails(task) {
     archiveBtn.classList.add("btn-success");
   } else {
     archivedBadge.classList.add("d-none");
-    archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Archive';
+    archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Complete';
     archiveBtn.classList.remove("btn-success");
     archiveBtn.classList.add("btn-warning");
   }
@@ -968,15 +968,15 @@ function setupModalActionButtons(taskId) {
     setTimeout(() => editTask(taskId), 500);
   };
 
-  // Archive button
+  // Complete button
   document.getElementById("archiveTaskBtn").onclick = function () {
     const task = allTasks.find((t) => t._id === taskId);
     if (task) {
-      const isCurrentlyArchived =
+      const isCurrentlyCompleted =
         task.completed === true ||
         task.completed === "true" ||
         task.completed === 1;
-      toggleArchiveTask(taskId, !isCurrentlyArchived);
+      toggleCompleteTask(taskId, !isCurrentlyCompleted);
     }
     bootstrap.Modal.getInstance(
       document.getElementById("taskDetailsModal")
@@ -1384,8 +1384,8 @@ async function handleEditTaskSubmission(taskId) {
   }
 }
 
-// --- Toggle Archive Task ---
-async function toggleArchiveTask(taskId, newCompletedState) {
+// --- Toggle Complete Task ---
+async function toggleCompleteTask(taskId, newCompletedState) {
   if (actionInProgress.has(taskId)) return;
   actionInProgress.add(taskId);
 

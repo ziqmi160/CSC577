@@ -297,10 +297,10 @@ function createTaskCard(task, isOverdue = false) {
   editIcon.setAttribute("data-bs-toggle", "tooltip");
   editIcon.setAttribute("data-bs-placement", "top");
 
-  // Archive icon
+  // Complete icon
   const archiveIcon = document.createElement("i");
   archiveIcon.className = "action-icon text-warning bi bi-archive";
-  archiveIcon.title = "Archive Task";
+  archiveIcon.title = "Complete Task";
   archiveIcon.setAttribute("data-bs-toggle", "tooltip");
   archiveIcon.setAttribute("data-bs-placement", "top");
 
@@ -359,14 +359,14 @@ function createTaskCard(task, isOverdue = false) {
       return;
     }
 
-    // Handle Archive icon click
+    // Handle Complete icon click
     if (
       e.target.classList.contains("bi-archive") ||
       e.target.classList.contains("bi-arrow-counterclockwise") ||
       e.target.closest(".bi-archive, .bi-arrow-counterclockwise")
     ) {
       e.stopPropagation();
-      handleArchiveTaskAction(cardDiv);
+      handleCompleteTaskAction(cardDiv);
       return;
     }
 
@@ -633,12 +633,12 @@ function openTaskDetailsModal(card) {
 }
 
 function populateTaskDetailsModal(taskData) {
-  const isTaskArchived =
+  const isTaskCompleted =
     taskData.archived === "true" || taskData.archived === true;
 
   // Set task title
   const taskTitle = document.getElementById("taskDetailsTitle");
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     taskTitle.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${taskData.title}`;
     taskTitle.classList.add("text-muted");
   } else {
@@ -751,10 +751,10 @@ function populateTaskDetailsModal(taskData) {
   }
 
   // Set archived status and button
-  const archivedBadge = document.getElementById("taskDetailsArchived");
+  const archivedBadge = document.getElementById("taskDetailsCompleted");
   const archiveBtn = document.getElementById("archiveTaskBtn");
 
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     archivedBadge.classList.remove("d-none");
     archiveBtn.innerHTML =
       '<i class="bi bi-arrow-counterclockwise me-1"></i> Restore';
@@ -762,7 +762,7 @@ function populateTaskDetailsModal(taskData) {
     archiveBtn.classList.add("btn-success");
   } else {
     archivedBadge.classList.add("d-none");
-    archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Archive';
+    archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Complete';
     archiveBtn.classList.remove("btn-success");
     archiveBtn.classList.add("btn-warning");
   }
@@ -792,7 +792,7 @@ function populateTaskDetailsModal(taskData) {
 
   document.getElementById("archiveTaskBtn").onclick = function () {
     // Handle archive/restore task
-    handleArchiveTask(taskData.taskId, !isTaskArchived);
+    handleCompleteTask(taskData.taskId, !isTaskCompleted);
     bootstrap.Modal.getInstance(
       document.getElementById("taskDetailsModal")
     ).hide();
@@ -800,18 +800,18 @@ function populateTaskDetailsModal(taskData) {
 }
 
 // --- Task Action Functions ---
-async function handleArchiveTask(taskId, shouldArchive) {
+async function handleCompleteTask(taskId, shouldComplete) {
   try {
     // Update task status via API
     await apiFetch(`/tasks/${taskId}`, {
       method: "PATCH",
       body: JSON.stringify({
-        completed: shouldArchive,
+        completed: shouldComplete,
       }),
     });
 
     displaySuccessMessage(
-      shouldArchive
+      shouldComplete
         ? "Task archived successfully!"
         : "Task restored successfully!"
     );
@@ -846,21 +846,21 @@ function handleEditTaskAction(card) {
   openEditTaskModal(taskData);
 }
 
-async function handleArchiveTaskAction(card) {
+async function handleCompleteTaskAction(card) {
   const taskId = card.dataset.taskId;
-  const isCurrentlyArchived = card.dataset.archived === "true";
-  const newArchivedState = !isCurrentlyArchived;
+  const isCurrentlyCompleted = card.dataset.archived === "true";
+  const newCompletedState = !isCurrentlyCompleted;
 
   try {
     await apiFetch(`/tasks/${taskId}`, {
       method: "PATCH",
       body: JSON.stringify({
-        completed: newArchivedState,
+        completed: newCompletedState,
       }),
     });
 
     displaySuccessMessage(
-      newArchivedState
+      newCompletedState
         ? "Task archived successfully!"
         : "Task restored successfully!"
     );
@@ -1282,7 +1282,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Handle Archive action
+    // Handle Complete action
     if (
       e.target.classList.contains("bi-archive") ||
       e.target.classList.contains("bi-arrow-counterclockwise") ||
@@ -1290,7 +1290,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ) {
       e.preventDefault();
       e.stopPropagation();
-      handleArchiveTaskAction(taskCard);
+      handleCompleteTaskAction(taskCard);
       return;
     }
 

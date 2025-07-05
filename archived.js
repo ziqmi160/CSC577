@@ -6,7 +6,7 @@ const API_BASE_URL = "http://localhost:5000";
 // --- Global Variables ---
 let editItem = null;
 let actionInProgress = new Set(); // Track actions in progress to prevent conflicts
-let allArchivedTasks = []; // Store all archived tasks for filtering
+let allCompletedTasks = []; // Store all archived tasks for filtering
 let currentSearchQuery = null; // Track current search query for semantic search
 let currentSortOption = "date-newest"; // Track current sort option
 let selectedFiles = []; // Store selected files for upload
@@ -67,8 +67,8 @@ async function apiFetch(endpoint, options = {}) {
   }
 }
 
-// --- Load Archived Tasks from API ---
-async function loadArchivedTasks() {
+// --- Load Completed Tasks from API ---
+async function loadCompletedTasks() {
   try {
     console.log("Loading archived tasks...");
     const taskContainer = document.getElementById("archivedTaskList");
@@ -98,10 +98,10 @@ async function loadArchivedTasks() {
       );
     });
     console.log("Filtered archived tasks:", archivedTasks);
-    console.log("Archived tasks count:", archivedTasks.length);
+    console.log("Completed tasks count:", archivedTasks.length);
 
     // Store archived tasks globally for search functionality
-    allArchivedTasks = archivedTasks || [];
+    allCompletedTasks = archivedTasks || [];
 
     // Reset search state when loading all tasks
     currentSearchQuery = null;
@@ -115,12 +115,12 @@ async function loadArchivedTasks() {
 
       // Render each archived task
       archivedTasks.forEach((task) => {
-        const taskCard = createArchivedTaskCard(task);
+        const taskCard = createCompletedTaskCard(task);
         taskContainer.appendChild(taskCard);
       });
 
       // Hide empty state
-      const emptyState = document.getElementById("noArchivedTasks");
+      const emptyState = document.getElementById("noCompletedTasks");
       if (emptyState) {
         emptyState.classList.add("d-none");
       }
@@ -130,15 +130,15 @@ async function loadArchivedTasks() {
     }
 
     // Update task counter if it exists
-    updateArchivedTaskCounter(archivedTasks ? archivedTasks.length : 0);
+    updateCompletedTaskCounter(archivedTasks ? archivedTasks.length : 0);
   } catch (error) {
     console.error("Failed to load archived tasks:", error);
     // Error message already handled in apiFetch
   }
 }
 
-// --- Create Archived Task Card Element (same structure as dashboard) ---
-function createArchivedTaskCard(task) {
+// --- Create Completed Task Card Element (same structure as dashboard) ---
+function createCompletedTaskCard(task) {
   // Create the column wrapper
   const colDiv = document.createElement("div");
   colDiv.className = "col";
@@ -282,8 +282,8 @@ function createArchivedTaskCard(task) {
   return colDiv;
 }
 
-// --- Handle Task Actions for Archived Tasks ---
-async function handleArchivedTaskActions(e) {
+// --- Handle Task Actions for Completed Tasks ---
+async function handleCompletedTaskActions(e) {
   // Handle View Details (card click or eye icon)
   if (
     e.target.classList.contains("bi-eye") ||
@@ -325,7 +325,7 @@ async function handleArchivedTaskActions(e) {
       displaySuccessMessage("Task restored successfully!");
 
       // Reload archived tasks to update the display
-      await loadArchivedTasks();
+      await loadCompletedTasks();
     } catch (error) {
       console.error("Failed to restore task:", error);
       displayErrorMessage("Failed to restore task. Please try again.");
@@ -368,7 +368,7 @@ async function handleArchivedTaskActions(e) {
       displaySuccessMessage("Task deleted permanently!");
 
       // Reload archived tasks to update the display
-      await loadArchivedTasks();
+      await loadCompletedTasks();
     } catch (error) {
       console.error("Failed to delete task:", error);
       displayErrorMessage("Failed to delete task. Please try again.");
@@ -416,12 +416,12 @@ function openTaskDetailsModal(card) {
 }
 
 function populateTaskDetailsModal(taskData) {
-  const isTaskArchived =
+  const isTaskCompleted =
     taskData.completed === "true" || taskData.completed === true;
 
   // Set task title with archived indication
   const taskTitle = document.getElementById("taskDetailsTitle");
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     taskTitle.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${taskData.title}`;
   } else {
     taskTitle.textContent = taskData.title;
@@ -519,9 +519,9 @@ function populateTaskDetailsModal(taskData) {
   }
 
   // Show archived badge
-  const archivedBadge = document.getElementById("taskDetailsArchived");
+  const archivedBadge = document.getElementById("taskDetailsCompleted");
   if (archivedBadge) {
-    if (isTaskArchived) {
+    if (isTaskCompleted) {
       archivedBadge.classList.remove("d-none");
     } else {
       archivedBadge.classList.add("d-none");
@@ -529,14 +529,14 @@ function populateTaskDetailsModal(taskData) {
   }
 
   // Update modal footer buttons for archived tasks
-  updateModalButtons(taskData.taskId, isTaskArchived);
+  updateModalButtons(taskData.taskId, isTaskCompleted);
 }
 
-function updateModalButtons(taskId, isArchived) {
+function updateModalButtons(taskId, isCompleted) {
   const editBtn = document.getElementById("editTaskBtn");
   const archiveBtn = document.getElementById("archiveTaskBtn");
 
-  if (isArchived) {
+  if (isCompleted) {
     // For archived tasks, change the archive button to restore
     if (archiveBtn) {
       archiveBtn.innerHTML =
@@ -592,7 +592,7 @@ function updateModalButtons(taskId, isArchived) {
   } else {
     // For active tasks, keep normal functionality
     if (archiveBtn) {
-      archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Archive';
+      archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Complete';
       archiveBtn.className = "btn btn-warning";
     }
 
@@ -668,7 +668,7 @@ async function restoreTaskFromModal(taskId) {
     }
 
     // Reload archived tasks
-    await loadArchivedTasks();
+    await loadCompletedTasks();
   } catch (error) {
     console.error("Failed to restore task:", error);
     displayErrorMessage("Failed to restore task. Please try again.");
@@ -680,7 +680,7 @@ async function restoreTaskFromModal(taskId) {
 // --- Show Empty State ---
 function showEmptyState() {
   const taskContainer = document.getElementById("archivedTaskList");
-  const emptyState = document.getElementById("noArchivedTasks");
+  const emptyState = document.getElementById("noCompletedTasks");
 
   if (emptyState) {
     emptyState.classList.remove("d-none");
@@ -691,7 +691,7 @@ function showEmptyState() {
     emptyDiv.innerHTML = `
       <div class="text-center py-5">
         <i class="bi bi-archive text-muted" style="font-size: 4rem"></i>
-        <h3 class="mt-3 text-muted">No Archived Tasks</h3>
+        <h3 class="mt-3 text-muted">No Completed Tasks</h3>
         <p class="text-muted">When you complete tasks, they will appear here.</p>
         <a href="dashboard.html" class="btn btn-primary-accent mt-3">
           <i class="bi bi-arrow-left me-2"></i>Back to My Tasks
@@ -703,7 +703,7 @@ function showEmptyState() {
 }
 
 // --- Update Task Counter ---
-function updateArchivedTaskCounter(count) {
+function updateCompletedTaskCounter(count) {
   // Update any counter elements if they exist
   const counterElements = document.querySelectorAll(".task-count, .badge");
   counterElements.forEach((element) => {
@@ -780,7 +780,7 @@ function setupSearchFunctionality() {
       if (currentSearchQuery) {
         const useSemantic = this.checked;
         const useContains = containsCheckbox?.checked || false;
-        performArchivedTasksSearch(
+        performCompletedTasksSearch(
           currentSearchQuery,
           useSemantic,
           useContains
@@ -794,7 +794,7 @@ function setupSearchFunctionality() {
       if (currentSearchQuery) {
         const useSemantic = semanticCheckbox?.checked || false;
         const useContains = this.checked;
-        performArchivedTasksSearch(
+        performCompletedTasksSearch(
           currentSearchQuery,
           useSemantic,
           useContains
@@ -826,7 +826,7 @@ function handleSearchInput(event) {
       // Empty query - return to normal view
       currentSearchQuery = null;
       updateSearchStatus(false);
-      loadArchivedTasks();
+      loadCompletedTasks();
       return;
     }
 
@@ -842,12 +842,12 @@ function handleSearchInput(event) {
       document.getElementById("containsSearchCheckbox")?.checked || false;
 
     // Perform search based on selected options
-    performArchivedTasksSearch(query, useSemantic, useContains);
+    performCompletedTasksSearch(query, useSemantic, useContains);
   }
 }
 
 // --- Enhanced Search Function (supports both semantic and contains search) ---
-async function performArchivedTasksSearch(
+async function performCompletedTasksSearch(
   query,
   useSemantic = true,
   useContains = false
@@ -901,25 +901,25 @@ async function performArchivedTasksSearch(
     updateSearchStatus(true, query);
 
     // Render search results
-    renderArchivedTasks(archivedSearchResults);
+    renderCompletedTasks(archivedSearchResults);
   } catch (error) {
     console.error("Search failed:", error);
     displayErrorMessage("Search failed. Please try again.");
 
     // Fall back to regular search
-    filterArchivedTasksBySearch(query);
+    filterCompletedTasksBySearch(query);
   }
 }
 
 // --- Fallback Regular Search Function ---
-function filterArchivedTasksBySearch(query) {
+function filterCompletedTasksBySearch(query) {
   if (!query) {
-    loadArchivedTasks(); // Reset to show all tasks
+    loadCompletedTasks(); // Reset to show all tasks
     return;
   }
 
   // Filter archived tasks that match the search query
-  const filteredTasks = allArchivedTasks.filter((task) => {
+  const filteredTasks = allCompletedTasks.filter((task) => {
     const titleMatch = task.title.toLowerCase().includes(query.toLowerCase());
     const descriptionMatch =
       task.description &&
@@ -936,11 +936,11 @@ function filterArchivedTasksBySearch(query) {
   updateSearchStatus(true, query);
 
   // Render filtered tasks
-  renderArchivedTasks(filteredTasks);
+  renderCompletedTasks(filteredTasks);
 }
 
-// --- Render Archived Tasks (unified function for both normal loading and search results) ---
-function renderArchivedTasks(tasks) {
+// --- Render Completed Tasks (unified function for both normal loading and search results) ---
+function renderCompletedTasks(tasks) {
   const taskContainer = document.getElementById("archivedTaskList");
 
   // Clear existing tasks
@@ -955,19 +955,19 @@ function renderArchivedTasks(tasks) {
 
     // Render each archived task
     sortedTasks.forEach((task) => {
-      const taskCard = createArchivedTaskCard(task);
+      const taskCard = createCompletedTaskCard(task);
       taskContainer.appendChild(taskCard);
     });
 
     // Hide empty state
-    const emptyState = document.getElementById("noArchivedTasks");
+    const emptyState = document.getElementById("noCompletedTasks");
     if (emptyState) {
       emptyState.classList.add("d-none");
     }
   }
 
   // Update task counter
-  updateArchivedTaskCounter(tasks.length);
+  updateCompletedTaskCounter(tasks.length);
 }
 
 // --- Sorting Functions ---
@@ -1019,10 +1019,10 @@ function handleSortChange(sortOption) {
       document.getElementById("semanticSearchCheckbox")?.checked || false;
     const useContains =
       document.getElementById("containsSearchCheckbox")?.checked || false;
-    performArchivedTasksSearch(currentSearchQuery, useSemantic, useContains);
+    performCompletedTasksSearch(currentSearchQuery, useSemantic, useContains);
   } else {
     // Re-render all archived tasks with new sort order
-    renderArchivedTasks(allArchivedTasks);
+    renderCompletedTasks(allCompletedTasks);
   }
 
   // Show success message
@@ -1041,14 +1041,14 @@ function updateSortButtonText(sortOption) {
 
 function getSortOptionDisplayName(sortOption) {
   const displayNames = {
-    "date-newest": "Date Archived (Newest First)",
-    "date-oldest": "Date Archived (Oldest First)",
+    "date-newest": "Date Completed (Newest First)",
+    "date-oldest": "Date Completed (Oldest First)",
     "title-asc": "Title (A-Z)",
     "title-desc": "Title (Z-A)",
     "priority-high": "Priority (High to Low)",
     "priority-low": "Priority (Low to High)",
   };
-  return displayNames[sortOption] || "Date Archived (Newest First)";
+  return displayNames[sortOption] || "Date Completed (Newest First)";
 }
 
 function setupSortFunctionality() {
@@ -1124,7 +1124,7 @@ function clearSearch() {
 
   currentSearchQuery = null;
   updateSearchStatus(false);
-  loadArchivedTasks();
+  loadCompletedTasks();
 
   displaySuccessMessage("Search cleared!");
 }
@@ -1164,12 +1164,12 @@ document.addEventListener("DOMContentLoaded", function () {
   displayUserInfo();
 
   // Load archived tasks
-  loadArchivedTasks();
+  loadCompletedTasks();
 
   // Setup event delegation for task actions
   const taskContainer = document.getElementById("archivedTaskList");
   if (taskContainer) {
-    taskContainer.addEventListener("click", handleArchivedTaskActions);
+    taskContainer.addEventListener("click", handleCompletedTaskActions);
   }
 
   // Setup logout handler
@@ -1560,8 +1560,8 @@ function populateExistingTagsDropdown() {
   // Collect all unique tags from tasks
   const allTags = new Set();
   
-  if (allArchivedTasks && Array.isArray(allArchivedTasks)) {
-    allArchivedTasks.forEach(task => {
+  if (allCompletedTasks && Array.isArray(allCompletedTasks)) {
+    allCompletedTasks.forEach(task => {
       if (task.label && Array.isArray(task.label)) {
         task.label.forEach(tag => {
           if (tag && tag.trim()) {
@@ -1757,7 +1757,7 @@ function setupEditTaskForm() {
         editExistingAttachments = [];
 
         // Reload tasks
-        await loadArchivedTasks();
+        await loadCompletedTasks();
 
       } catch (error) {
         console.error("Failed to update task:", error);

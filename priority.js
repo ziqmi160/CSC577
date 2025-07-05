@@ -112,7 +112,7 @@ function applyPriorityFilter(priority) {
 }
 
 // --- Helper function to check if task is archived ---
-function isTaskArchived(task) {
+function isTaskCompleted(task) {
   return (
     task.completed === true || task.completed === "true" || task.completed === 1
   );
@@ -225,10 +225,10 @@ function createPriorityTaskCard(task) {
     editTask(task._id);
   };
 
-  // Archive icon
+  // Complete icon
   const archiveIcon = document.createElement("i");
   archiveIcon.className = "action-icon text-warning bi bi-archive";
-  archiveIcon.title = "Archive Task";
+  archiveIcon.title = "Complete Task";
   archiveIcon.style.cursor = "pointer";
   archiveIcon.onclick = (e) => {
     e.stopPropagation(); // Prevent card click
@@ -281,12 +281,12 @@ function createPriorityTaskCard(task) {
   colDiv.appendChild(cardDiv);
 
   // Apply styling based on task status (matching dashboard exactly)
-  const isArchived =
+  const isCompleted =
     task.completed === true ||
     task.completed === "true" ||
     task.completed === 1;
 
-  if (isArchived) {
+  if (isCompleted) {
     // Apply exact same styling as dashboard
     cardDiv.classList.add("bg-light");
     titleH5.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${
@@ -297,7 +297,7 @@ function createPriorityTaskCard(task) {
     // Add archived badge to header (same position as dashboard)
     const archivedBadge = document.createElement("span");
     archivedBadge.className = "badge bg-warning ms-2";
-    archivedBadge.textContent = "Archived";
+    archivedBadge.textContent = "Completed";
     cardHeaderDiv.appendChild(archivedBadge);
 
     // Hide edit button (same as dashboard)
@@ -351,7 +351,7 @@ async function editTask(taskId) {
   }
 }
 
-// Archive task function
+// Complete task function
 async function archiveTask(taskId) {
   if (actionInProgress.has(taskId)) return;
 
@@ -365,22 +365,22 @@ async function archiveTask(taskId) {
       return;
     }
 
-    const isCurrentlyArchived =
+    const isCurrentlyCompleted =
       task.completed === true ||
       task.completed === "true" ||
       task.completed === 1;
-    const newArchivedState = !isCurrentlyArchived;
+    const newCompletedState = !isCurrentlyCompleted;
 
     // Update task via API
     await apiFetch(`/tasks/${taskId}`, {
       method: "PATCH",
       body: JSON.stringify({
-        completed: newArchivedState,
+        completed: newCompletedState,
       }),
     });
 
     displaySuccessMessage(
-      newArchivedState
+      newCompletedState
         ? "Task completed and archived successfully!"
         : "Task restored and marked incomplete successfully!"
     );
@@ -429,14 +429,14 @@ async function deleteTask(taskId) {
 
 // View task details function - shows task details in modal
 function viewTaskDetails(task) {
-  const isTaskArchived =
+  const isTaskCompleted =
     task.completed === true ||
     task.completed === "true" ||
     task.completed === 1;
 
   // Set task title with archived styling (matching dashboard exactly)
   const taskTitle = document.getElementById("taskDetailsTitle");
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     taskTitle.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${task.title}`;
     taskTitle.classList.add("text-muted");
   } else {
@@ -546,10 +546,10 @@ function viewTaskDetails(task) {
   document.getElementById("taskDetailsCreated").textContent = createdDate;
 
   // Set archived status and button (matching dashboard exactly)
-  const archivedBadge = document.getElementById("taskDetailsArchived");
+  const archivedBadge = document.getElementById("taskDetailsCompleted");
   const archiveBtn = document.getElementById("archiveTaskBtn");
 
-  if (isTaskArchived) {
+  if (isTaskCompleted) {
     archivedBadge.classList.remove("d-none");
     archiveBtn.innerHTML =
       '<i class="bi bi-arrow-counterclockwise me-1"></i> Restore';
@@ -557,7 +557,7 @@ function viewTaskDetails(task) {
     archiveBtn.classList.add("btn-success");
   } else {
     archivedBadge.classList.add("d-none");
-    archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Archive';
+    archiveBtn.innerHTML = '<i class="bi bi-archive me-1"></i> Complete';
     archiveBtn.classList.remove("btn-success");
     archiveBtn.classList.add("btn-warning");
   }
@@ -582,7 +582,7 @@ function setupModalActionButtons(taskId) {
     setTimeout(() => editTask(taskId), 500);
   };
 
-  // Archive button
+  // Complete button
   document.getElementById("archiveTaskBtn").onclick = function () {
     archiveTask(taskId);
     bootstrap.Modal.getInstance(
