@@ -280,7 +280,7 @@ function createTaskCard(task, isOverdue = false) {
 
   if (task.dueDate) {
     const taskDate = new Date(task.dueDate);
-    dueDateSmall.innerHTML = `<i class="bi bi-calendar-event me-1"></i>${taskDate.toLocaleDateString()}`;
+    dueDateSmall.innerHTML = `<i class="bi bi-calendar-event me-1"></i>Due: ${taskDate.toLocaleDateString()}`;
   } else {
     dueDateSmall.innerHTML = `<i class="bi bi-calendar-event me-1"></i>No due date`;
   }
