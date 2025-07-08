@@ -68,6 +68,8 @@ async function apiFetch(endpoint, options = {}) {
 async function loadTasksFromAPI(endpoint = "/tasks") {
   try {
     const taskContainer = document.getElementById("taskList");
+    const dueTodayAlert = document.getElementById("dueTodayAlert");
+    const dueTodayCountSpan = document.getElementById("dueTodayCount");
 
     // Clear current tasks from the DOM
     while (taskContainer.firstChild) {
@@ -83,9 +85,37 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
       updateSearchStatus(false);
     }
 
+    // --- Due Today Logic ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let dueTodayCount = 0;
+    let dueTodayTaskIds = new Set();
+    if (tasks && tasks.length > 0) {
+      tasks.forEach((task) => {
+        if (task.dueDate && !task.completed) {
+          const dueDate = new Date(task.dueDate);
+          dueDate.setHours(0, 0, 0, 0);
+          if (dueDate.getTime() === today.getTime()) {
+            dueTodayCount++;
+            dueTodayTaskIds.add(task._id);
+          }
+        }
+      });
+    }
+    if (dueTodayCount > 0) {
+      dueTodayAlert.style.display = "block";
+      dueTodayCountSpan.textContent = dueTodayCount;
+    } else {
+      dueTodayAlert.style.display = "none";
+    }
+
     if (tasks && tasks.length > 0) {
       tasks.forEach((task) => {
         const taskCard = createTaskCard(task);
+        // Highlight due today tasks
+        if (dueTodayTaskIds.has(task._id)) {
+          taskCard.querySelector('.task-card').classList.add('due-today-highlight');
+        }
         taskContainer.appendChild(taskCard);
       });
     } else {
@@ -246,12 +276,36 @@ function createTaskCard(task) {
   archiveIcon.style.cursor = "pointer";
   archiveIcon.style.padding = "4px";
   archiveIcon.setAttribute("data-action", "archive");
+  archiveIcon.onclick = (e) => {
+    e.stopPropagation(); // Prevent card click
+    handleCompleteToggle(cardDiv);
+  };
 
   // Delete icon
   const deleteIcon = document.createElement("i");
   deleteIcon.className = "bi bi-trash action-icon text-danger delete";
   deleteIcon.title = "Delete Task";
   deleteIcon.style.cursor = "pointer";
+  deleteIcon.onclick = (e) => {
+    e.stopPropagation(); // Prevent card click
+    // Simulate the same logic as in handleTaskActions for delete
+    const card = cardDiv;
+    const taskId = card.dataset.taskId;
+    if (!taskId) {
+      displayErrorMessage("Error: Task ID not found for deletion.");
+      return;
+    }
+    if (confirm("Are you sure you want to delete this task?")) {
+      apiFetch(`/tasks/${taskId}`, { method: "DELETE" })
+        .then(() => {
+          displaySuccessMessage("Task deleted successfully!");
+          loadTasksFromAPI();
+        })
+        .catch((error) => {
+          console.error("Failed to delete task:", error);
+        });
+    }
+  };
 
   actionsDiv.appendChild(editIcon);
   actionsDiv.appendChild(archiveIcon);
@@ -1165,7 +1219,7 @@ function updateCardUI(card, isCompleted, isCompleted) {
   });
 
   if (actualCompletedState || actualCompletedState) {
-    card.classList.add("bg-light");
+    // card.classList.add("bg-light");
     cardTitle.innerHTML = `<i class="bi bi-check-circle me-1 text-success"></i> ${card.dataset.title}`;
     cardTitle.classList.add("text-muted");
     if (editButton) editButton.style.display = "none";

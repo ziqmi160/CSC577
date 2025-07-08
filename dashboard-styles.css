@@ -122,3 +122,9 @@
     padding: 1rem 0.75rem;
   }
 }
+
+.due-today-highlight {
+  border: 2px solid #fd7e14 !important;
+  box-shadow: 0 0 8px 0 #fd7e1433;
+  background-color: #fff8e1 !important;
+}

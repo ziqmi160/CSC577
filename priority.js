@@ -613,7 +613,7 @@ function populateEditForm(task) {
   } else {
     document.getElementById("editTaskDueDate").value = "";
   }
-  
+
   // Set minimum date to today for edit form
   const dueDateField = document.getElementById("editTaskDueDate");
   if (dueDateField) {

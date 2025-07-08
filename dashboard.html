@@ -644,9 +644,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="archived-tasks.html" data-bs-toggle="tooltip" data-bs-placement="right" title="Archived Tasks">
+                <a class="nav-link" href="archived-tasks.html" data-bs-toggle="tooltip" data-bs-placement="right" title="Completed Tasks">
                     <i class="bi bi-archive"></i>
-                    <span>Archived Tasks</span>
+                    <span>Completed Tasks</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -740,6 +740,10 @@
         </div>
 
         <!-- Task List / Card Layout -->
+        <div id="dueTodayAlert" class="alert alert-warning alert-dismissible fade show" style="display:none;" role="alert">
+            <strong>Reminder:</strong> You have <span id="dueTodayCount"></span> task(s) due today!
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="taskList">
         </div>
     </div>

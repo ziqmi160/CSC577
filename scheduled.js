@@ -1682,7 +1682,7 @@ function setupEditTaskForm() {
       displayErrorMessage("Due date is required");
       return;
     }
-    
+
     // Validate due date is not in the past
     const currentDate = new Date().toISOString().split("T")[0];
     if (new Date(taskData.dueDate) < new Date(currentDate)) {
