@@ -164,24 +164,54 @@ function createPriorityTaskCard(task) {
   const cardBodyDiv = document.createElement("div");
   cardBodyDiv.className = "card-body";
 
-  // Create card header with title and priority badge
+  // Create card header with title and badges
   const cardHeaderDiv = document.createElement("div");
-  cardHeaderDiv.className =
-    "d-flex justify-content-between align-items-center mb-2";
+  cardHeaderDiv.className = "d-flex justify-content-between align-items-center mb-2";
 
   // Task title
   const titleH5 = document.createElement("h5");
   titleH5.className = "card-title mb-0";
   titleH5.textContent = task.title || "Untitled Task";
 
-  // Priority badge with appropriate class
+  // Badges container
+  const badgesDiv = document.createElement("div");
+  badgesDiv.className = "d-flex flex-row align-items-center gap-2";
+
+  // Priority badge
   const priorityBadge = document.createElement("span");
   const priorityClass = `priority-${(task.priority || "low").toLowerCase()}`;
   priorityBadge.className = `badge ${priorityClass}`;
   priorityBadge.textContent = task.priority || "Low";
+  badgesDiv.appendChild(priorityBadge);
+
+  // Overdue badge (if applicable)
+  if (task.dueDate && !isTaskCompleted(task)) {
+    const dueDate = new Date(task.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    if (dueDate < today) {
+      const overdueBadge = document.createElement("span");
+      overdueBadge.className = "badge overdue-badge";
+      overdueBadge.textContent = "Overdue";
+      badgesDiv.appendChild(overdueBadge);
+    }
+  }
+
+  // Completed badge (if applicable)
+  if (isTaskCompleted(task)) {
+    // Remove any existing Completed badge to prevent duplicates
+    Array.from(badgesDiv.querySelectorAll('.badge.bg-warning')).forEach(badge => {
+      if (badge.textContent.trim() === 'Completed') badge.remove();
+    });
+    const completedBadge = document.createElement("span");
+    completedBadge.className = "badge bg-warning ms-2";
+    completedBadge.textContent = "Completed";
+    badgesDiv.appendChild(completedBadge);
+  }
 
   cardHeaderDiv.appendChild(titleH5);
-  cardHeaderDiv.appendChild(priorityBadge);
+  cardHeaderDiv.appendChild(badgesDiv);
 
   // Description paragraph
   const descriptionP = document.createElement("p");
@@ -293,12 +323,6 @@ function createPriorityTaskCard(task) {
       task.title || "Untitled Task"
     }`;
     titleH5.classList.add("text-muted");
-
-    // Add archived badge to header (same position as dashboard)
-    const archivedBadge = document.createElement("span");
-    archivedBadge.className = "badge bg-warning ms-2";
-    archivedBadge.textContent = "Completed";
-    cardHeaderDiv.appendChild(archivedBadge);
 
     // Hide edit button (same as dashboard)
     editIcon.style.display = "none";

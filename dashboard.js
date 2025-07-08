@@ -172,23 +172,49 @@ function createTaskCard(task) {
   const cardBodyDiv = document.createElement("div");
   cardBodyDiv.className = "card-body d-flex flex-column";
 
-  // Create card header with title and priority
+  // Create card header with title and badges
   const cardHeaderDiv = document.createElement("div");
-  cardHeaderDiv.className =
-    "d-flex justify-content-between align-items-start mb-2";
+  cardHeaderDiv.className = "d-flex justify-content-between align-items-start mb-2";
 
   // Task title
   const titleH5 = document.createElement("h5");
   titleH5.className = "card-title mb-1";
   titleH5.textContent = task.title;
 
+  // Badges container
+  const badgesDiv = document.createElement("div");
+  badgesDiv.className = "d-flex flex-row align-items-center gap-2";
+
   // Priority badge
   const priorityBadge = document.createElement("span");
   priorityBadge.className = `badge priority-${task.priority.toLowerCase()}`;
   priorityBadge.textContent = task.priority;
+  badgesDiv.appendChild(priorityBadge);
+
+  // Overdue badge (if applicable)
+  if (task.dueDate && !task.completed) {
+    const dueDate = new Date(task.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    if (dueDate < today) {
+      const overdueBadge = document.createElement("span");
+      overdueBadge.className = "badge overdue-badge";
+      overdueBadge.textContent = "Overdue";
+      badgesDiv.appendChild(overdueBadge);
+    }
+  }
+
+  // Completed badge (if applicable)
+  if (task.completed) {
+    const completedBadge = document.createElement("span");
+    completedBadge.className = "badge bg-warning ms-2";
+    completedBadge.textContent = "Completed";
+    badgesDiv.appendChild(completedBadge);
+  }
 
   cardHeaderDiv.appendChild(titleH5);
-  cardHeaderDiv.appendChild(priorityBadge);
+  cardHeaderDiv.appendChild(badgesDiv);
 
   // Description
   const descriptionP = document.createElement("p");
@@ -1231,10 +1257,17 @@ function updateCardUI(card, isCompleted, isCompleted) {
         ".d-flex.justify-content-between.align-items-start"
       );
       if (cardHeaderDiv) {
+        let badgesDiv = cardHeaderDiv.querySelector('.d-flex.flex-row.align-items-center.gap-2');
+        if (!badgesDiv) {
+          // fallback: create if not found
+          badgesDiv = document.createElement('div');
+          badgesDiv.className = 'd-flex flex-row align-items-center gap-2';
+          cardHeaderDiv.appendChild(badgesDiv);
+        }
         const archivedBadge = document.createElement("span");
         archivedBadge.className = "badge bg-warning ms-2";
         archivedBadge.textContent = "Completed";
-        cardHeaderDiv.appendChild(archivedBadge);
+        badgesDiv.appendChild(archivedBadge);
       }
     }
   } else {
@@ -2354,3 +2387,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ... rest of your existing DOMContentLoaded code or other initializations
 });
+

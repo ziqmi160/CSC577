@@ -128,3 +128,12 @@
   box-shadow: 0 0 8px 0 #fd7e1433;
   background-color: #fff8e1 !important;
 }
+
+.overdue-badge {
+  background-color: #dc3545 !important;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.2em 0.5em;
+  border-radius: 0.25rem;
+  margin-left: 0.5rem;
+}

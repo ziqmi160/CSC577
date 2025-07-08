@@ -569,36 +569,31 @@
           isValid = false;
           message = `${input.labels[0].textContent} is required`;
         } else {
-          switch (input.type) {
-            case "email":
-              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-              if (!emailRegex.test(input.value)) {
+          // Always validate password and confirmPassword fields by id, not type
+          if (input.id === "password") {
+            if (input.value.length < 8) {
+              isValid = false;
+              message = "Password must be at least 8 characters long";
+            }
+          } else if (input.id === "confirmPassword") {
+            const password = document.getElementById("password").value;
+            if (input.value !== password) {
+              isValid = false;
+              message = "Passwords do not match";
+            }
+          } else if (input.type === "email") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(input.value)) {
+              isValid = false;
+              message = "Please enter a valid email address";
+            }
+          } else if (input.type === "text") {
+            if (input.id === "username") {
+              if (input.value.length < 3) {
                 isValid = false;
-                message = "Please enter a valid email address";
+                message = "Username must be at least 3 characters long";
               }
-              break;
-            case "password":
-              if (input.id === "password") {
-                if (input.value.length < 8) {
-                  isValid = false;
-                  message = "Password must be at least 8 characters long";
-                }
-              } else if (input.id === "confirmPassword") {
-                const password = document.getElementById("password").value;
-                if (input.value !== password) {
-                  isValid = false;
-                  message = "Passwords do not match";
-                }
-              }
-              break;
-            case "text":
-              if (input.id === "username") {
-                if (input.value.length < 3) {
-                  isValid = false;
-                  message = "Username must be at least 3 characters long";
-                }
-              }
-              break;
+            }
           }
         }
 
