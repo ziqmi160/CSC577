@@ -1562,28 +1562,33 @@ function populateExistingTagsDropdown() {
   // Reset dropdown
   existingTagsDropdown.innerHTML = '<option value="">Select existing tag</option>';
   
-  // Collect all unique tags from tasks
-  const allTags = new Set();
-  
-  if (allCompletedTasks && Array.isArray(allCompletedTasks)) {
-    allCompletedTasks.forEach(task => {
-      if (task.label && Array.isArray(task.label)) {
-        task.label.forEach(tag => {
-          if (tag && tag.trim()) {
-            allTags.add(tag.trim());
-          }
-        });
-      }
+  // Collect all unique tags from all tasks (not just completed)
+  const token = localStorage.getItem("token");
+  fetch(`${API_BASE_URL}/tasks`, {
+    headers: { Authorization: "Bearer " + token },
+  })
+    .then(response => response.json())
+    .then(tasks => {
+      const allTags = new Set();
+      tasks.forEach(task => {
+        if (Array.isArray(task.label)) {
+          task.label.forEach(tag => {
+            if (tag && tag.trim()) {
+              allTags.add(tag.trim());
+            }
+          });
+        }
+      });
+      Array.from(allTags).sort().forEach(tag => {
+        const option = document.createElement("option");
+        option.value = tag;
+        option.textContent = tag;
+        existingTagsDropdown.appendChild(option);
+      });
+    })
+    .catch(() => {
+      // ignore errors
     });
-  }
-  
-  // Add options to dropdown
-  Array.from(allTags).sort().forEach(tag => {
-    const option = document.createElement("option");
-    option.value = tag;
-    option.textContent = tag;
-    existingTagsDropdown.appendChild(option);
-  });
 }
 
 // Setup tag functionality

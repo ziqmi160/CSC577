@@ -129,6 +129,12 @@
   background-color: #fff8e1 !important;
 }
 
+.overdue-highlight {
+  border: 2px solid #dc3545 !important;
+  box-shadow: 0 0 8px 0 #dc354533;
+  background-color: #fff0f0 !important;
+}
+
 .overdue-badge {
   background-color: #dc3545 !important;
   color: white;

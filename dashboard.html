@@ -740,6 +740,10 @@
         </div>
 
         <!-- Task List / Card Layout -->
+        <div id="overdueAlert" class="alert alert-danger alert-dismissible fade show" style="display:none;" role="alert">
+            <strong>Attention:</strong> You have <span id="overdueCount"></span> overdue task(s)!
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
         <div id="dueTodayAlert" class="alert alert-warning alert-dismissible fade show" style="display:none;" role="alert">
             <strong>Reminder:</strong> You have <span id="dueTodayCount"></span> task(s) due today!
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -819,7 +823,7 @@
                             </label>
                             <div class="input-group">
                                 <label for="taskAttachment" class="btn btn-outline-secondary w-100">
-                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                    <i class="bi bi-paperclip"></i> Choose Files
                                 </label>
                                 <input type="file" class="form-control" id="taskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
                             </div>
@@ -899,7 +903,7 @@
                             </label>
                             <div class="input-group">
                                 <label for="editTaskAttachment" class="btn btn-outline-secondary w-100">
-                                    <i class="bi bi-paperclip"></i> Choose Files (Max 10MB each)
+                                    <i class="bi bi-paperclip"></i> Choose Files
                                 </label>
                                 <input type="file" class="form-control" id="editTaskAttachment" name="attachment" multiple style="display: none;" accept="*/*">
                             </div>

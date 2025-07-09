@@ -70,6 +70,8 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
     const taskContainer = document.getElementById("taskList");
     const dueTodayAlert = document.getElementById("dueTodayAlert");
     const dueTodayCountSpan = document.getElementById("dueTodayCount");
+    const overdueAlert = document.getElementById("overdueAlert");
+    const overdueCountSpan = document.getElementById("overdueCount");
 
     // Clear current tasks from the DOM
     while (taskContainer.firstChild) {
@@ -90,6 +92,8 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
     today.setHours(0, 0, 0, 0);
     let dueTodayCount = 0;
     let dueTodayTaskIds = new Set();
+    let overdueCount = 0;
+    let overdueTaskIds = new Set();
     if (tasks && tasks.length > 0) {
       tasks.forEach((task) => {
         if (task.dueDate && !task.completed) {
@@ -98,6 +102,9 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
           if (dueDate.getTime() === today.getTime()) {
             dueTodayCount++;
             dueTodayTaskIds.add(task._id);
+          } else if (dueDate < today) {
+            overdueCount++;
+            overdueTaskIds.add(task._id);
           }
         }
       });
@@ -108,6 +115,12 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
     } else {
       dueTodayAlert.style.display = "none";
     }
+    if (overdueCount > 0) {
+      overdueAlert.style.display = "block";
+      overdueCountSpan.textContent = overdueCount;
+    } else {
+      overdueAlert.style.display = "none";
+    }
 
     if (tasks && tasks.length > 0) {
       tasks.forEach((task) => {
@@ -115,6 +128,10 @@ async function loadTasksFromAPI(endpoint = "/tasks") {
         // Highlight due today tasks
         if (dueTodayTaskIds.has(task._id)) {
           taskCard.querySelector('.task-card').classList.add('due-today-highlight');
+        }
+        // Highlight overdue tasks
+        if (overdueTaskIds.has(task._id)) {
+          taskCard.querySelector('.task-card').classList.add('overdue-highlight');
         }
         taskContainer.appendChild(taskCard);
       });
@@ -2175,9 +2192,14 @@ if (showAddFormBtn) {
 }
 
 async function populateExistingTagsDropdown() {
-  const dropdown = document.getElementById("existingTagsDropdown");
-  if (!dropdown) return;
-  dropdown.innerHTML = '<option value="">Select existing tag</option>';
+  const dropdowns = [
+    document.getElementById("existingTagsDropdown"),
+    document.getElementById("editExistingTagsDropdown")
+  ].filter(Boolean);
+  if (dropdowns.length === 0) return;
+  dropdowns.forEach(dropdown => {
+    dropdown.innerHTML = '<option value="">Select existing tag</option>';
+  });
   try {
     const token = localStorage.getItem("token");
     const response = await fetch(`${API_BASE_URL}/tasks`, {
@@ -2193,10 +2215,12 @@ async function populateExistingTagsDropdown() {
     Array.from(tagSet)
       .sort()
       .forEach((tag) => {
-        const option = document.createElement("option");
-        option.value = tag;
-        option.textContent = tag;
-        dropdown.appendChild(option);
+        dropdowns.forEach(dropdown => {
+          const option = document.createElement("option");
+          option.value = tag;
+          option.textContent = tag;
+          dropdown.appendChild(option);
+        });
       });
   } catch (err) {
     // ignore
@@ -2217,12 +2241,6 @@ if (existingTagsDropdown) {
 const oldShowAddTaskModal = showAddTaskModal;
 showAddTaskModal = function () {
   oldShowAddTaskModal();
-  populateExistingTagsDropdown();
-};
-// Also call in handleEditTask
-const oldHandleEditTask = handleEditTask;
-handleEditTask = function (card) {
-  oldHandleEditTask(card);
   populateExistingTagsDropdown();
 };
 
